@@ -1,5 +1,5 @@
-from sqlalchemy import text
-
+from sqlalchemy import text, TextClause
+from src.db.models.asset import Period, PERIOD_MONTHS
 
 NEW_ASSET = text("""
 INSERT INTO assets (name, asset_type, currency, icon_base64)
@@ -86,3 +86,20 @@ NEW_READING = text("""
 INSERT INTO asset_readings (asset_id, quantity)
 VALUES (:asset_id, :quantity)
 """)
+
+def get_portfolio_history_query(period: Period) -> tuple[TextClause, dict]:
+    if period == "all":
+        return text("""
+        SELECT *
+        FROM portfolio_history
+        ORDER BY record_date
+        """), {}
+
+    months = PERIOD_MONTHS[period]
+
+    return text("""
+    SELECT *
+    FROM portfolio_history
+    WHERE record_date >= date_trunc('month', CURRENT_DATE) - (:months * INTERVAL '1 month')
+    ORDER BY record_date
+    """), {"months": months}

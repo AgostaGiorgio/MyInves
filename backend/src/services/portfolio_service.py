@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 from src.services.portfolio_repository import PortfolioRepository
-from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon
+from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, PortfolioHistoryItemView, Period
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
 
@@ -35,6 +35,12 @@ class PortfolioService:
         logger.debug("Fetching portfolio...")
         portfolio = await PortfolioRepository.get_portfolio()
         logger.debug(f"Retrieved {len(portfolio)} assets from portfolio.")
+        return portfolio
+    
+    async def get_portfolio_history(self, period: Period) -> list[PortfolioHistoryItemView]:
+        logger.debug("Fetching portfolio history...")
+        portfolio = await PortfolioRepository.get_portfolio_history(period=period)
+        logger.debug(f"Retrieved {len(portfolio)} elements from portfolio history.")
         return portfolio
 
     async def add_readings(self, readings: list[ReadingCreate]) -> list[ReadingCreate]:

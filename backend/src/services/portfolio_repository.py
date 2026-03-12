@@ -1,7 +1,7 @@
 import logging
 from src.db.db import AsyncSessionLocal
 from uuid import UUID
-from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon
+from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, Period, PortfolioHistoryItemView
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
 from src.services.queries import *
@@ -74,6 +74,20 @@ class PortfolioRepository:
                 assets = result.mappings().all()
                 logger.debug(f"Fetched {len(assets)} portfolio assets from the database.")
                 return [PortfolioItemView(**asset) for asset in assets]
+            except Exception as e:
+                logger.error(f"Error fetching portfolio: {e}")
+                return []
+        return []
+        
+    @classmethod
+    async def get_portfolio_history(cls, period: Period) -> list[PortfolioHistoryItemView]:
+        async with AsyncSessionLocal() as session:
+            try:
+                query, params = get_portfolio_history_query(period)
+                result = await session.execute(query, params)
+                assets = result.mappings().all()
+                logger.debug(f"Fetched {len(assets)} portfolio assets from the database.")
+                return [PortfolioHistoryItemView(**asset) for asset in assets]
             except Exception as e:
                 logger.error(f"Error fetching portfolio: {e}")
                 return []

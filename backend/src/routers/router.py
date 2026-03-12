@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from dependency_injector.wiring import inject, Provide
 from src.di import Container
 from uuid import UUID
 from src.services.portfolio_service import PortfolioService
-from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon
+from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, PortfolioHistoryItemView, Period
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
 
@@ -37,6 +37,11 @@ async def create_asset(asset: Asset, asset_service: PortfolioService = Depends(P
 @inject
 async def get_portfolio(portfolio_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[PortfolioItemView]:
     return await portfolio_service.get_portfolio()
+
+@api_router.get("/portfolio/history", response_model=list[PortfolioHistoryItemView], status_code=201)
+@inject
+async def get_portfolio_history(period: Period = Query("all"), portfolio_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[PortfolioHistoryItemView]:
+    return await portfolio_service.get_portfolio_history(period=period)
 
 @api_router.post("/readings", response_model=list[ReadingCreate], status_code=201)
 @inject

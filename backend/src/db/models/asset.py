@@ -1,9 +1,16 @@
 from pydantic import BaseModel, Field
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Literal
 from uuid import UUID
 from datetime import datetime
 from src.db.models.enums import CurrencyEnum, AssetTypeEnum
+
+Period = Literal["all", "3m", "6m", "12m"]
+PERIOD_MONTHS = {
+    "3m": 3,
+    "6m": 6,
+    "12m": 12,
+}
 
 class Asset(BaseModel):
     id: Optional[UUID] = Field(None, description="L'ID univoco nel database")
@@ -40,4 +47,8 @@ class PortfolioItemView(BaseModel):
     asset_type: AssetTypeEnum
     currency: CurrencyEnum
     reading_date: datetime = Field(..., description="Data dell'ultima lettura inserita")
+    total_value_eur: Decimal = Field(..., description="Valore totale convertito in Euro")
+    
+class PortfolioHistoryItemView(BaseModel):
+    record_date: datetime = Field(..., description="Data della lettura")
     total_value_eur: Decimal = Field(..., description="Valore totale convertito in Euro")
