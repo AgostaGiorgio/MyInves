@@ -87,6 +87,18 @@ INSERT INTO asset_readings (asset_id, quantity)
 VALUES (:asset_id, :quantity)
 """)
 
+ASSETS_HISTORY = text("""
+SELECT
+    a.name,
+    ah.record_date,
+    ah.total_value_eur
+FROM assets_history ah
+LEFT JOIN assets a
+    ON a.id = ah.asset_id
+WHERE ah.record_date >= date_trunc('month', CURRENT_DATE) - INTERVAL '1 year'
+ORDER BY a.name, ah.record_date;
+""")
+
 def get_portfolio_history_query(period: Period) -> tuple[TextClause, dict]:
     if period == "all":
         return text("""

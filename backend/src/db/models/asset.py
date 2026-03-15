@@ -49,6 +49,10 @@ class PortfolioItemView(BaseModel):
     reading_date: datetime = Field(..., description="Data dell'ultima lettura inserita")
     total_value_eur: Decimal = Field(..., description="Valore totale convertito in Euro")
     
-class PortfolioHistoryItemView(BaseModel):
+class HistoryItemView(BaseModel):
     record_date: datetime = Field(..., description="Data della lettura")
     total_value_eur: Decimal = Field(..., description="Valore totale convertito in Euro")
+    
+class AssetHistoryItemView(BaseModel):
+    asset_name: str
+    values: list[HistoryItemView]

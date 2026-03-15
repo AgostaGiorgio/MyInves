@@ -1,7 +1,7 @@
 import logging
 from src.db.db import AsyncSessionLocal
 from uuid import UUID
-from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, Period, PortfolioHistoryItemView
+from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, Period, HistoryItemView, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
 from src.services.queries import *
@@ -67,6 +67,32 @@ class PortfolioRepository:
         return None
     
     @classmethod
+    async def get_asset_history(cls) -> list[AssetHistoryItemView]:
+        history: dict[str, AssetHistoryItemView] = {}
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(ASSETS_HISTORY)
+                assets = result.mappings().all()
+                logger.debug(f"Fetched {len(assets)} assets history from the database.")
+                
+                for asset in assets:
+                    print(asset)
+                    history_item = HistoryItemView(**asset)
+                    print(history_item)
+                    if asset["name"] in history:
+                        history[asset["name"]].values.append(history_item)
+                    else:
+                        history[asset["name"]] = AssetHistoryItemView(
+                            asset_name=asset["name"],
+                            values=[history_item]
+                        )
+                return history.values()
+            except Exception as e:
+                logger.error(f"Error fetching assets history: {e}")
+                return []
+        return []
+    
+    @classmethod
     async def get_portfolio(cls) -> list[PortfolioItemView]:
         async with AsyncSessionLocal() as session:
             try:
@@ -80,16 +106,16 @@ class PortfolioRepository:
         return []
         
     @classmethod
-    async def get_portfolio_history(cls, period: Period) -> list[PortfolioHistoryItemView]:
+    async def get_portfolio_history(cls, period: Period) -> list[HistoryItemView]:
         async with AsyncSessionLocal() as session:
             try:
                 query, params = get_portfolio_history_query(period)
                 result = await session.execute(query, params)
                 assets = result.mappings().all()
-                logger.debug(f"Fetched {len(assets)} portfolio assets from the database.")
-                return [PortfolioHistoryItemView(**asset) for asset in assets]
+                logger.debug(f"Fetched {len(assets)} portfolio history from the database.")
+                return [HistoryItemView(**asset) for asset in assets]
             except Exception as e:
-                logger.error(f"Error fetching portfolio: {e}")
+                logger.error(f"Error fetching portfolio history: {e}")
                 return []
         return []
 
