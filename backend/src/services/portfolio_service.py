@@ -45,9 +45,11 @@ class PortfolioService:
     
     async def get_portfolio_history(self, period: Period) -> list[HistoryItemView]:
         logger.debug("Fetching portfolio history...")
-        portfolio = await PortfolioRepository.get_portfolio_history(period=period)
-        logger.debug(f"Retrieved {len(portfolio)} elements from portfolio history.")
-        return portfolio
+        portfolio_history = await PortfolioRepository.get_portfolio_history(period=period)
+        current_portfolio = await PortfolioRepository.get_current_portfolio_total()
+        portfolio_history.append(current_portfolio)
+        logger.debug(f"Retrieved {len(portfolio_history)} elements from portfolio history.")
+        return portfolio_history
 
     async def add_readings(self, readings: list[ReadingCreate]) -> list[ReadingCreate]:
         logger.debug(f"Adding new reading set: {readings}..")
