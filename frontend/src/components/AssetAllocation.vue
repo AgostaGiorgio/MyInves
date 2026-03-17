@@ -5,7 +5,6 @@ import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js'
 
 ChartJS.register(ArcElement, Tooltip)
 
-// Riceviamo gli asset da App.vue!
 const props = defineProps({
   assets: {
     type: Array,

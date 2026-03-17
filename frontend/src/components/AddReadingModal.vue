@@ -8,13 +8,9 @@ const props = defineProps({
   }
 })
 
-// Dichiariamo gli eventi che questo componente può inviare verso l'alto
 const emit = defineEmits(['close', 'submit'])
-
-const readingDate = ref(new Date().toISOString().split('T')[0])
 const readingsForm = reactive({})
 
-// Quando il pannello si apre, prepariamo i campi vuoti
 onMounted(() => {
   props.assets.forEach(asset => {
     readingsForm[asset.id] = null
@@ -25,8 +21,7 @@ const handleSubmit = () => {
   const payload = Object.keys(readingsForm)
     .filter(id => readingsForm[id] !== null && readingsForm[id] !== '')
     .map(id => ({
-      asset_id: parseInt(id),
-      record_date: readingDate.value,
+      asset_id: id,
       quantity: parseFloat(readingsForm[id])
     }))
 
@@ -35,7 +30,6 @@ const handleSubmit = () => {
     return
   }
 
-  // Inviamo i dati al genitore (App.vue) e chiudiamo
   emit('submit', payload)
 }
 </script>
@@ -55,11 +49,6 @@ const handleSubmit = () => {
       </div>
 
       <div class="flex-1 overflow-y-auto px-6 py-5 hide-scrollbar">
-        <div class="mb-6">
-           <label class="text-brand-textMuted text-[11px] uppercase tracking-wider font-semibold mb-2 block">Data Registrazione</label>
-           <input type="date" v-model="readingDate" class="w-full bg-brand-surface border border-white/10 text-brand-textMain rounded-app-sm p-3 focus:border-brand-primary outline-none transition-colors" />
-        </div>
-
         <div class="mb-2">
           <label class="text-brand-textMuted text-[11px] uppercase tracking-wider font-semibold mb-3 block">Nuove Quantità (Lascia vuoto se invariato)</label>
           <div class="flex flex-col gap-3">

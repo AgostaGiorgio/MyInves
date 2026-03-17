@@ -1,6 +1,7 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
+import { api } from './services/api'
 import AppHeader from './components/AppHeader.vue'
 import MarketTicker from './components/MarketTicker.vue'
 import BalanceHero from './components/BalanceHero.vue'
@@ -10,24 +11,107 @@ import AssetAllocation from './components/AssetAllocation.vue'
 import AssetComparison from './components/AssetComparison.vue'
 import AddReadingModal from './components/AddReadingModal.vue'
 
-const portfolioTotal = ref(15250.75)
+const marketData = ref([])
+const portfolioTotal = ref(0)
+const portfolioAssets = ref([])
 
-const marketData = ref([
-  { id: 1, type: 'asset', name: 'BTC', value: 58420.50, date: '27 Feb', iconUrl: 'https://cryptologos.cc/logos/bitcoin-btc-logo.svg?v=029' },
-  { id: 2, type: 'asset', name: 'IWDA', value: 94.20, date: '26 Feb', iconUrl: 'https://cdn-icons-png.flaticon.com/512/2635/2635285.png' },
-  { id: 3, type: 'rate', name: 'USD', value: 0.923, date: '27 Feb', iconUrl: null },
-  { id: 4, type: 'rate', name: 'AED', value: 0.251, date: '27 Feb', iconUrl: null }
-])
+const loadDashboardData = async () => {
+  try {
+    const [rawAssets, rawRates, rawPortfolio] = await Promise.all([
+      api.getAssets(),
+      api.getExchangeRates(),
+      api.getPortfolio()
+    ])
 
-const portfolioAssets = ref([
-  { id: 1, name: 'IWDA', type: 'ETF', value: 5240.50, iconUrl: 'https://cdn-icons-png.flaticon.com/512/2635/2635285.png' },
-  { id: 2, name: 'BINANCE', type: 'CRYPTO', value: 3150.25, iconUrl: 'https://cryptologos.cc/logos/binance-coin-bnb-logo.svg?v=029' },
-  { id: 3, name: 'UNICREDIT', type: 'BANK_ACCOUNT', value: 4500.00, iconUrl: null },
-  { id: 4, name: 'ORO', type: 'GOLD', value: 2360.00, iconUrl: null },
-  { id: 5, name: 'WIO', type: 'BANK_ACCOUNT', value: 1250.00, iconUrl: null }
-])
+    const formattedRates = rawRates.map(rate => ({
+      id: rate.id,
+      type: 'rate',
+      name: rate.currency,
+      value: parseFloat(rate.rate_to_eur),
+      date: new Date(rate.record_date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
+      iconUrl: null
+    }))
+
+    const formattedAssets = rawAssets
+      .filter(asset => parseFloat(asset.price) !== 1)
+      .map(asset => ({
+        id: asset.id,
+        type: 'asset',
+        name: asset.name,
+        value: parseFloat(asset.price),
+        date: new Date(asset.price_date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
+        iconUrl: null 
+      }))
+
+    marketData.value = [...formattedAssets, ...formattedRates]
+
+    formattedAssets.forEach(async (item) => {
+      try {
+        const iconData = await api.getAssetIcon(item.id)
+        if (iconData && iconData.icon_base64) {
+          const targetIndex = marketData.value.findIndex(m => m.id === item.id)
+          if (targetIndex !== -1) {
+            marketData.value[targetIndex].iconUrl = iconData.icon_base64
+          }
+        }
+      } catch (err) {
+        console.warn(`Nessuna icona trovata per ${item.name}`)
+      }
+    })
+
+    let calculatedTotal = 0
+    portfolioAssets.value = rawPortfolio.map(item => {
+      const itemValue = parseFloat(item.total_value_eur)
+      calculatedTotal += itemValue
+      
+      return {
+        id: item.id,
+        name: item.name,
+        type: item.asset_type,
+        value: itemValue,
+        iconUrl: null 
+      }
+    })
+
+    portfolioTotal.value = calculatedTotal
+
+    rawAssets.forEach(async (rawAsset) => {
+      try {
+        const iconData = await api.getAssetIcon(rawAsset.id)
+        if (iconData && iconData.icon_base64) {
+          const tickerTarget = marketData.value.find(m => m.name === rawAsset.name)
+          if (tickerTarget) tickerTarget.iconUrl = iconData.icon_base64
+          const portfolioTarget = portfolioAssets.value.find(p => p.name === rawAsset.name)
+          if (portfolioTarget) portfolioTarget.iconUrl = iconData.icon_base64
+        }
+      } catch (err) {
+        console.warn(`Nessuna icona trovata per ${rawAsset.name}`)
+      }
+    })
+
+  } catch (error) {
+    console.error("Errore fatale nel caricamento del carosello:", error)
+  }
+}
+
+onMounted(() => {
+  loadDashboardData()
+})
 
 const isModalOpen = ref(false)
+const refreshKey = ref(0)
+
+const handleReadingsSubmit = async (payload) => {
+  try {
+    await api.addReadings(payload)
+    isModalOpen.value = false
+    await loadDashboardData()
+    refreshKey.value += 1
+  } catch (error) {
+    console.error("Errore durante il salvataggio delle letture:", error)
+    alert("Si è verificato un errore durante il salvataggio. Riprova.")
+  }
+}
 
 </script>
 
@@ -39,9 +123,9 @@ const isModalOpen = ref(false)
     
     <BalanceHero :total="portfolioTotal" />
 
-    <TotalChart />
+    <TotalChart :key="refreshKey"/>
 
-    <AssetComparison :assets="portfolioAssets" />
+    <AssetComparison :assets="portfolioAssets" :key="refreshKey"/>
 
     <AssetAllocation :assets="portfolioAssets" />
 

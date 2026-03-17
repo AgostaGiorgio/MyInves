@@ -20,7 +20,7 @@
       >
         <div class="flex items-center gap-4">
           <div class="w-10 h-10 rounded-full bg-brand-background flex items-center justify-center border border-white/5 overflow-hidden shrink-0 shadow-inner">
-             <img v-if="asset.iconUrl" :src="asset.iconUrl" alt="icona" class="w-full h-full object-cover p-1.5" />
+             <img v-if="asset.iconUrl" :src="asset.iconUrl" alt="icona" class="w-full h-full object-cover" />
              <span v-else class="text-brand-primary font-bold text-sm">
                {{ asset.name.charAt(0) }}
              </span>
