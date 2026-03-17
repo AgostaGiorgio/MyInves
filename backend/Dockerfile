@@ -13,6 +13,6 @@ RUN pip install poetry
 COPY . .
 RUN poetry install
 
-EXPOSE 8000
+EXPOSE 8080
 
-CMD ["poetry", "run", "uvicorn", "src.main:app", "--port", "8000", "--host", "0.0.0.0"]
+CMD ["poetry", "run", "uvicorn", "src.main:app", "--port", "8080", "--host", "0.0.0.0"]
