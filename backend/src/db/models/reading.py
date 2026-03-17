@@ -6,7 +6,6 @@ from uuid import UUID
 
 class ReadingCreate(BaseModel):
     asset_id: UUID = Field(..., description="L'ID dell'asset a cui si riferisce")
-    record_date: Optional[datetime] = Field(None, description="La data della lettura")
     quantity: Decimal = Field(..., description="La quantità posseduta in questa data")
     
     def to_dict(self) -> dict:

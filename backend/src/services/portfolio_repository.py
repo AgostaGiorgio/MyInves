@@ -1,6 +1,7 @@
 import logging
 from src.db.db import AsyncSessionLocal
 from uuid import UUID
+from datetime import datetime
 from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, Period, HistoryItemView, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
@@ -76,9 +77,7 @@ class PortfolioRepository:
                 logger.debug(f"Fetched {len(assets)} assets history from the database.")
                 
                 for asset in assets:
-                    print(asset)
                     history_item = HistoryItemView(**asset)
-                    print(history_item)
                     if asset["name"] in history:
                         history[asset["name"]].values.append(history_item)
                     else:
@@ -91,6 +90,19 @@ class PortfolioRepository:
                 logger.error(f"Error fetching assets history: {e}")
                 return []
         return []
+    
+    @classmethod
+    async def get_current_portfolio_total(cls) -> HistoryItemView | None:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_PORTFOLIO)
+                assets = result.mappings().all()
+                logger.debug(f"Fetched {len(assets)} portfolio assets from the database.")
+                return  HistoryItemView(total_value_eur=sum([float(asset["total_value_eur"]) for asset in assets]), record_date=datetime.now())
+            except Exception as e:
+                logger.error(f"Error fetching portfolio: {e}")
+                return None
+        return None
     
     @classmethod
     async def get_portfolio(cls) -> list[PortfolioItemView]:
