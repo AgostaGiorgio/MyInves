@@ -85,11 +85,22 @@ class PortfolioRepository:
                             asset_name=asset["name"],
                             values=[history_item]
                         )
+                        
+                current_portfolio = await cls.get_portfolio()
+                for asset in current_portfolio:
+                    history_item = HistoryItemView(record_date=asset.reading_date, total_value_eur=asset.total_value_eur)
+                    if asset.name in history:
+                        history[asset.name].values.append(history_item)
+                    else:
+                        history[asset.name] = AssetHistoryItemView(
+                            asset_name=asset.name,
+                            values=[history_item]
+                        )
                 return history.values()
             except Exception as e:
                 logger.error(f"Error fetching assets history: {e}")
                 return []
-        return []
+        return history.values()
     
     @classmethod
     async def get_current_portfolio_total(cls) -> HistoryItemView | None:
@@ -119,17 +130,20 @@ class PortfolioRepository:
         
     @classmethod
     async def get_portfolio_history(cls, period: Period) -> list[HistoryItemView]:
+        history = []
         async with AsyncSessionLocal() as session:
             try:
                 query, params = get_portfolio_history_query(period)
                 result = await session.execute(query, params)
                 assets = result.mappings().all()
                 logger.debug(f"Fetched {len(assets)} portfolio history from the database.")
-                return [HistoryItemView(**asset) for asset in assets]
+                history = [HistoryItemView(**asset) for asset in assets]
+                logger.debug("Fetching current portfolio total...")
+                current_total = await cls.get_current_portfolio_total()
+                history.append(current_total)
             except Exception as e:
                 logger.error(f"Error fetching portfolio history: {e}")
-                return []
-        return []
+        return history
 
     @classmethod
     async def create_readings(cls, readings: list[ReadingCreate]) -> list[ReadingCreate] | None:
