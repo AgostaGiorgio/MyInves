@@ -1,0 +1,1 @@
+ALTER TABLE assets ADD COLUMN icon_base64 TEXT;
