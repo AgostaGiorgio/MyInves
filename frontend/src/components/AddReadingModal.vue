@@ -12,6 +12,7 @@ const emit = defineEmits(['close', 'submit'])
 const readingsForm = reactive({})
 
 onMounted(() => {
+  console.log('Assets:', props.assets)
   props.assets.forEach(asset => {
     readingsForm[asset.id] = null
   })
@@ -59,7 +60,7 @@ const handleSubmit = () => {
                 <span class="text-brand-textMain text-sm font-semibold">{{ asset.name }}</span>
               </div>
               <div class="relative w-28">
-                <input type="number" step="any" v-model="readingsForm[asset.id]" placeholder="0.00" class="w-full bg-brand-background border border-white/10 rounded-md py-2 px-3 text-right text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none transition-all placeholder-brand-textMuted/30" />
+                <input type="number" step="any" v-model="readingsForm[asset.id]" :placeholder="asset.quantity" class="w-full bg-brand-background border border-white/10 rounded-md py-2 px-3 text-right text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none transition-all placeholder-brand-textMuted/30" />
               </div>
             </div>
           </div>

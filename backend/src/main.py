@@ -13,7 +13,7 @@ if app_config.orbit_api_url:
     orbit_client = OrbitClient(
         orbit_api_url=app_config.orbit_api_url,
         name="MyInves",
-        version="1.1.0",
+        version="1.2.0",
         description="Investment tracker",
         app_url="https://myinves.agogi.dev"
     )
@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
 container = Container()
 container.wire(modules=[router])
 
-app = FastAPI(lifespan=lifespan, title="MyInves API", version="1.1.0")
+app = FastAPI(lifespan=lifespan, title="MyInves API", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,

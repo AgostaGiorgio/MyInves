@@ -105,12 +105,12 @@ const chartOptions = {
 </script>
 
 <template>
-  <section class="w-full max-w-md px-5 mb-10 flex flex-col items-start">
-    <h2 class="text-brand-textMuted text-[11px] font-semibold uppercase tracking-wider mb-2">
-      Confronta Andamento
-    </h2>
+  <section class="w-full flex flex-col items-start gap-2">
+    <div class="flex items-center">
+      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Confronta Andamento</span>
+    </div>
 
-    <div class="w-full flex overflow-x-auto gap-2 pb-2 hide-scrollbar mb-4">
+    <div class="w-full flex overflow-x-auto gap-2 hide-scrollbar">
       <button 
         v-for="asset in assets" 
         :key="'compare-' + asset.id" 
