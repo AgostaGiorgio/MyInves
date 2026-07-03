@@ -88,9 +88,9 @@ const chartOptions = {
 </script>
 
 <template>
-  <section class="w-full max-w-md px-5 mb-10 flex flex-col items-start">
+  <section class="w-full flex flex-col items-start gap-2">
     
-    <div class="w-full h-40 mb-5 relative">
+    <div class="w-full h-48 bg-brand-surface/30 rounded-app-sm p-2 border border-white/5 relative">
       <Line v-if="rawHistoryData.length > 0 && !isLoading" :data="chartData" :options="chartOptions" />
       
       <div v-else-if="isLoading" class="absolute inset-0 flex items-center justify-center text-brand-textMuted text-xs font-medium">

@@ -8,12 +8,13 @@
 </script>
 
 <template>
-  <main class="w-full max-w-md px-5 mb-4 flex flex-col items-start mt-4">
-    <h2 class="text-brand-textMuted text-[11px] font-semibold uppercase tracking-wider mb-2">
-      Bilancio Attuale
-    </h2>
+  <section class="w-full flex flex-col gap-2">
+    <div class="flex items-center">
+      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Bilancio Attuale</span>
+    </div>
+
     <div class="text-4xl font-extrabold text-brand-textMain tracking-tighter">
       € {{ total.toLocaleString('it-IT', { minimumFractionDigits: 2 }) }}
     </div>
-  </main>
+  </section>
 </template>

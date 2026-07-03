@@ -8,11 +8,12 @@
 </script>
 
 <template>
-  <section class="w-full max-w-md px-5 mb-6">
-    <h2 class="text-brand-textMuted text-[11px] font-semibold uppercase tracking-wider mb-2">
-      I Miei Asset
-    </h2>
-    <div class="flex flex-col gap-3">
+  <section class="w-full flex flex-col items-start gap-2">
+    <div class="flex items-center">
+      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">I Miei Asset</span>
+    </div>
+    
+    <div class="w-full flex flex-col gap-3">
       <div 
         v-for="asset in assets" 
         :key="asset.id" 

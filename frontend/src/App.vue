@@ -69,6 +69,7 @@ const loadDashboardData = async () => {
         name: item.name,
         type: item.asset_type,
         value: itemValue,
+        quantity: parseFloat(item.quantity),
         iconUrl: null 
       }
     })
@@ -116,21 +117,19 @@ const handleReadingsSubmit = async (payload) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-brand-background flex flex-col items-center pb-24 font-sans">
+  <div class="min-h-screen bg-brand-background flex flex-col items-center text-brand-textMain font-sans pb-24 selection:bg-brand-primary selection:text-white">
     <AppHeader />
 
-    <MarketTicker :items="marketData" />
-    
-    <BalanceHero :total="portfolioTotal" />
-
-    <TotalChart :key="refreshKey"/>
-
-    <AssetComparison :assets="portfolioAssets" :key="refreshKey"/>
-
-    <AssetAllocation :assets="portfolioAssets" />
-
-    <AssetList :assets="portfolioAssets" />
-    
+    <main class="w-full px-4">
+      <div class="py-3 flex flex-col gap-7 w-full">
+        <MarketTicker :items="marketData"/>
+        <BalanceHero :total="portfolioTotal"/>
+        <TotalChart :key="refreshKey"/>
+        <AssetComparison :assets="portfolioAssets" :key="refreshKey"/>
+        <AssetAllocation :assets="portfolioAssets"/>
+        <AssetList :assets="portfolioAssets"/>
+      </div>
+    </main>
 
     <button @click="isModalOpen = true" class="fixed bottom-6 right-6 w-14 h-14 bg-brand-primary text-brand-textMain rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(139,92,246,0.4)] hover:bg-brand-secondary hover:scale-105 active:scale-95 transition-all duration-200 z-50">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>

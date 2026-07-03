@@ -47,6 +47,7 @@ class PortfolioItemView(BaseModel):
     asset_type: AssetTypeEnum
     currency: CurrencyEnum
     reading_date: datetime = Field(..., description="Data dell'ultima lettura inserita")
+    quantity: Decimal = Field(..., description="Quantità dell'asset posseduta")
     total_value_eur: Decimal = Field(..., description="Valore totale convertito in Euro")
     
 class HistoryItemView(BaseModel):

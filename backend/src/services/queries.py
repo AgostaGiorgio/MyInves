@@ -66,6 +66,7 @@ SELECT
     a.asset_type, 
     a.currency, 
     lread.record_date AS reading_date,
+    ROUND(lread.quantity, 2) AS quantity,
     
     ROUND(
         lread.quantity * COALESCE(lp.price, 1.0) * CASE 
