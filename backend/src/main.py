@@ -1,4 +1,6 @@
 import logging
+import tomli
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -9,13 +11,16 @@ from src.config.app_config import app_config
 
 logger = logging.getLogger(__name__)
 
+_pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+APP_VERSION = tomli.loads(_pyproject.read_text())["tool"]["poetry"]["version"]
+
 if app_config.orbit_api_url:
     orbit_client = OrbitClient(
         orbit_api_url=app_config.orbit_api_url,
         name="MyInves",
-        version="1.2.0",
+        version=APP_VERSION,
         description="Investment tracker",
-        app_url="https://myinves.agogi.dev"
+        app_url=app_config.app_url
     )
     
 @asynccontextmanager
@@ -28,7 +33,7 @@ async def lifespan(app: FastAPI):
 container = Container()
 container.wire(modules=[router])
 
-app = FastAPI(lifespan=lifespan, title="MyInves API", version="1.2.0")
+app = FastAPI(lifespan=lifespan, title="MyInves API", version=APP_VERSION)
 
 app.add_middleware(
     CORSMiddleware,
