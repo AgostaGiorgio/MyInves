@@ -13,7 +13,7 @@ const props = defineProps({
 })
 
 const assetTypeColors = {
-  'ETF': '#3b82f6', 'CRYPTO': '#10b981', 'BANK_ACCOUNT': '#8b5cf6', 'GOLD': '#f59e0b', 'CASH': '#ec4899'
+  'ETF': '#3b82f6', 'CRYPTO': '#10b981', 'BANK_ACCOUNT': '#8b5cf6', 'GOLD': '#f59e0b', 'CASH': '#ec4899', 'BANK_ACCOUNT_STATIC': '#6366f1'
 }
 
 const assetTypeDistribution = computed(() => {
@@ -29,7 +29,7 @@ const assetTypeDistribution = computed(() => {
   return Object.keys(totals).map(type => {
     const value = totals[type]
     return {
-      type: type.replace('_', ' '),
+      type: type.replaceAll('_', ' '),
       value: value,
       percentage: totalValue > 0 ? ((value / totalValue) * 100).toFixed(1) : 0,
       color: assetTypeColors[type] || '#94a3b8'

@@ -69,7 +69,7 @@ SELECT
     ROUND(lread.quantity, 2) AS quantity,
     
     ROUND(
-        lread.quantity * COALESCE(lp.price, 1.0) * CASE 
+        COALESCE(lread.quantity, 0) * COALESCE(lp.price, 1.0) * CASE 
             WHEN a.currency = 'EUR' THEN 1.0
             ELSE COALESCE(lr.rate_to_eur, 1.0)
         END,
@@ -77,7 +77,7 @@ SELECT
     )::TEXT AS total_value_eur
     
 FROM assets a
-INNER JOIN LatestReadings lread ON a.id = lread.asset_id
+LEFT JOIN LatestReadings lread ON a.id = lread.asset_id
 LEFT JOIN LatestPrices lp ON a.id = lp.asset_id
 LEFT JOIN LatestRates lr ON a.currency = lr.currency
 ORDER BY total_value_eur DESC;

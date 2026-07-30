@@ -12,3 +12,4 @@ class AssetTypeEnum(str, Enum):
     CASH = "CASH"
     GOLD = "GOLD"
     BANK_ACCOUNT = "BANK_ACCOUNT"
+    BANK_ACCOUNT_STATIC = "BANK_ACCOUNT_STATIC"
