@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Plus, Check, Settings } from 'lucide-vue-next'
+import { Plus, Settings, ChevronDown } from 'lucide-vue-next'
 import { api } from '../services/api'
 
 const currencies = ref([])
@@ -11,6 +11,9 @@ const isError = ref(false)
 
 const newCurrency = ref({ code: '', label: '' })
 const newAssetType = ref({ code: '', label: '' })
+
+const currenciesOpen = ref(false)
+const assetTypesOpen = ref(false)
 
 const showMessage = (text, error = false) => {
   message.value = text
@@ -25,8 +28,8 @@ const loadData = async () => {
       api.getCurrencies(),
       api.getAssetTypes(),
     ])
-    currencies.value = cur
-    assetTypes.value = types
+    currencies.value = cur.map(item => ({ ...item, _originalLabel: item.label }))
+    assetTypes.value = types.map(item => ({ ...item, _originalLabel: item.label }))
   } catch (e) {
     showMessage('Errore nel caricamento dei dati.', true)
   } finally {
@@ -63,19 +66,25 @@ const addAssetType = async () => {
 }
 
 const renameCurrency = async (item) => {
+  if (item.label === item._originalLabel) return
   try {
     await api.renameCurrency(item.code, item.label)
+    item._originalLabel = item.label
     showMessage(`Valuta ${item.code} rinominata.`)
   } catch (e) {
+    item.label = item._originalLabel
     showMessage('Impossibile rinominare la valuta.', true)
   }
 }
 
 const renameAssetType = async (item) => {
+  if (item.label === item._originalLabel) return
   try {
     await api.renameAssetType(item.code, item.label)
+    item._originalLabel = item.label
     showMessage(`Tipo asset ${item.code} rinominato.`)
   } catch (e) {
+    item.label = item._originalLabel
     showMessage('Impossibile rinominare il tipo asset.', true)
   }
 }
@@ -87,12 +96,15 @@ onMounted(loadData)
   <main class="w-full px-4">
     <div class="py-3 flex flex-col gap-7 w-full">
 
-      <section class="w-full flex flex-col items-start gap-3">
-        <div class="flex items-center">
+      <section class="w-full bg-brand-surface rounded-app-sm border border-white/5 overflow-hidden">
+        <button @click="currenciesOpen = !currenciesOpen"
+          class="w-full flex items-center justify-between p-4 hover:bg-brand-surface/80 transition-colors">
           <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Valute</span>
-        </div>
+          <ChevronDown :size="18" class="text-brand-textMuted transition-transform duration-200"
+            :class="currenciesOpen ? 'rotate-180' : ''" />
+        </button>
 
-        <div class="w-full bg-brand-surface rounded-app-sm p-4 border border-white/5 flex flex-col gap-3">
+        <div v-show="currenciesOpen" class="px-4 pb-4 pt-4 border-t border-white/5 flex flex-col gap-3">
           <div class="flex flex-col sm:flex-row gap-2">
             <input v-model="newCurrency.code" placeholder="Codice (es. GBP)"
               class="flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40 uppercase" />
@@ -108,23 +120,22 @@ onMounted(loadData)
             <div v-for="item in currencies" :key="item.code"
               class="flex items-center gap-2 bg-brand-background rounded-md px-3 py-2 border border-white/5">
               <span class="text-brand-textMuted text-xs font-bold w-12 uppercase shrink-0">{{ item.code }}</span>
-              <input v-model="item.label" placeholder="Nome visualizzato"
+              <input v-model="item.label" @blur="renameCurrency(item)" placeholder="Nome visualizzato"
                 class="flex-1 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-1 px-2 text-brand-textMain text-sm outline-none transition-all" />
-              <button @click="renameCurrency(item)"
-                class="flex items-center gap-1 px-3 py-1 rounded-md bg-brand-surface text-brand-primary text-xs font-semibold border border-white/10 hover:bg-brand-surface/70 transition-colors">
-                <Check :size="14" />
-              </button>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="w-full flex flex-col items-start gap-3">
-        <div class="flex items-center">
+      <section class="w-full bg-brand-surface rounded-app-sm border border-white/5 overflow-hidden">
+        <button @click="assetTypesOpen = !assetTypesOpen"
+          class="w-full flex items-center justify-between p-4 hover:bg-brand-surface/80 transition-colors">
           <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Tipi di Asset</span>
-        </div>
+          <ChevronDown :size="18" class="text-brand-textMuted transition-transform duration-200"
+            :class="assetTypesOpen ? 'rotate-180' : ''" />
+        </button>
 
-        <div class="w-full bg-brand-surface rounded-app-sm p-4 border border-white/5 flex flex-col gap-3">
+        <div v-show="assetTypesOpen" class="px-4 pb-4 pt-4 border-t border-white/5 flex flex-col gap-3">
           <div class="flex flex-col sm:flex-row gap-2">
             <input v-model="newAssetType.code" placeholder="Codice (es. BOND)"
               class="flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40 uppercase" />
@@ -140,12 +151,8 @@ onMounted(loadData)
             <div v-for="item in assetTypes" :key="item.code"
               class="flex flex-wrap items-center gap-2 bg-brand-background rounded-md px-3 py-2 border border-white/5">
               <span class="text-brand-textMuted text-xs font-bold uppercase shrink-0">{{ item.code }}</span>
-              <input v-model="item.label" placeholder="Nome visualizzato"
-                class="flex-1 min-w-[120px] bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-1 px-2 text-brand-textMain text-sm outline-none transition-all" />
-              <button @click="renameAssetType(item)"
-                class="flex items-center gap-1 px-3 py-1 rounded-md bg-brand-surface text-brand-primary text-xs font-semibold border border-white/10 hover:bg-brand-surface/70 transition-colors">
-                <Check :size="14" />
-              </button>
+              <input v-model="item.label" @blur="renameAssetType(item)" placeholder="Nome visualizzato"
+                class="w-full bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-1 px-2 text-brand-textMain text-sm outline-none transition-all" />
             </div>
           </div>
         </div>
