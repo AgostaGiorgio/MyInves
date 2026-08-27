@@ -2,6 +2,9 @@
 import { ref, onMounted } from 'vue'
 import { Wallet, TrendingUp, TrendingDown, Trophy, ArrowUpRight, ArrowDownRight, Percent } from 'lucide-vue-next'
 import { api } from '../services/api'
+import { useSensitiveVisibility, maskAmount } from '../composables/useSensitiveVisibility'
+
+const { isSensitiveHidden } = useSensitiveVisibility()
 
 const stats = ref(null)
 const isLoading = ref(true)
@@ -68,7 +71,7 @@ const isPositive = (value) => value !== null && value !== undefined && Number(va
         <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Current Total</span>
         <div class="flex items-center gap-3">
           <span class="text-4xl font-extrabold text-brand-textMain tracking-tighter">
-            {{ formatMoney(stats.current_total_eur) }}
+            {{ isSensitiveHidden ? maskAmount() : formatMoney(stats.current_total_eur) }}
           </span>
           <span v-if="stats.change_vs_prev_month_pct !== null" class="flex items-center gap-1 text-sm font-semibold px-2 py-1 rounded-md"
             :class="isPositive(stats.change_vs_prev_month_pct) ? 'bg-emerald-400/10 text-emerald-400' : 'bg-red-400/10 text-red-400'">

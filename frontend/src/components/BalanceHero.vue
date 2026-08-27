@@ -1,4 +1,7 @@
 <script setup>
+    import { useSensitiveVisibility, maskAmount } from '../composables/useSensitiveVisibility'
+    const { isSensitiveHidden } = useSensitiveVisibility()
+
     defineProps({
     total: {
         type: Number,
@@ -14,7 +17,8 @@
     </div>
 
     <div class="text-4xl font-extrabold text-brand-textMain tracking-tighter">
-      € {{ total.toLocaleString('it-IT', { minimumFractionDigits: 2 }) }}
+      <span v-if="isSensitiveHidden">{{ maskAmount() }}</span>
+      <span v-else>€ {{ total.toLocaleString('it-IT', { minimumFractionDigits: 2 }) }}</span>
     </div>
   </section>
 </template>

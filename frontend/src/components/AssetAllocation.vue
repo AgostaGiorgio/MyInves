@@ -12,8 +12,13 @@ const props = defineProps({
   }
 })
 
-const assetTypeColors = {
-  'ETF': '#3b82f6', 'CRYPTO': '#10b981', 'BANK_ACCOUNT': '#8b5cf6', 'GOLD': '#f59e0b', 'CASH': '#ec4899', 'BANK_ACCOUNT_STATIC': '#6366f1'
+const colorFor = (key) => {
+  let hash = 0
+  for (let i = 0; i < key.length; i++) {
+    hash = key.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const hue = Math.abs(hash) % 360
+  return `hsl(${hue} 70% 55%)`
 }
 
 const assetTypeDistribution = computed(() => {
@@ -32,7 +37,7 @@ const assetTypeDistribution = computed(() => {
       type: type.replaceAll('_', ' '),
       value: value,
       percentage: totalValue > 0 ? ((value / totalValue) * 100).toFixed(1) : 0,
-      color: assetTypeColors[type] || '#94a3b8'
+      color: colorFor(type)
     }
   }).sort((a, b) => b.value - a.value)
 })
