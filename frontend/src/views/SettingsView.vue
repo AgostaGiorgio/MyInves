@@ -12,7 +12,7 @@ const isError = ref(false)
 
 const newCurrency = ref({ code: '', label: '' })
 const newAssetType = ref({ code: '', label: '' })
-const newAsset = ref({ name: '', asset_type: '', currency: '', icon_base64: '' })
+const newAsset = ref({ name: '', asset_type: '', currency: '', icon_base64: '', include_in_stats: false })
 
 const currenciesOpen = ref(false)
 const assetTypesOpen = ref(false)
@@ -55,7 +55,7 @@ const loadAssets = async () => {
   try {
     assets.value = (await api.getAssets()).map(item => ({
       ...item,
-      _original: { name: item.name, asset_type: item.asset_type, currency: item.currency, icon_base64: item.icon_base64 || '' },
+      _original: { name: item.name, asset_type: item.asset_type, currency: item.currency, icon_base64: item.icon_base64 || '', include_in_stats: item.include_in_stats },
       pricesOpen: false,
       prices: [],
       newPrice: { record_date: '', price: '' },
@@ -103,8 +103,9 @@ const addAsset = async () => {
       asset_type,
       currency,
       icon_base64: newAsset.value.icon_base64 || null,
+      include_in_stats: newAsset.value.include_in_stats,
     })
-    newAsset.value = { name: '', asset_type: '', currency: '', icon_base64: '' }
+    newAsset.value = { name: '', asset_type: '', currency: '', icon_base64: '', include_in_stats: false }
     showMessage(`Asset ${name} added.`)
     await loadAssets()
   } catch (e) {
@@ -114,21 +115,23 @@ const addAsset = async () => {
 
 const updateAsset = async (item) => {
   const orig = item._original
-  if (item.name === orig.name && item.asset_type === orig.asset_type && item.currency === orig.currency && (item.icon_base64 || '') === orig.icon_base64) return
+  if (item.name === orig.name && item.asset_type === orig.asset_type && item.currency === orig.currency && (item.icon_base64 || '') === orig.icon_base64 && item.include_in_stats === orig.include_in_stats) return
   try {
     await api.updateAsset(item.id, {
       name: item.name,
       asset_type: item.asset_type,
       currency: item.currency,
       icon_base64: item.icon_base64 || null,
+      include_in_stats: item.include_in_stats,
     })
-    item._original = { name: item.name, asset_type: item.asset_type, currency: item.currency, icon_base64: item.icon_base64 || '' }
+    item._original = { name: item.name, asset_type: item.asset_type, currency: item.currency, icon_base64: item.icon_base64 || '', include_in_stats: item.include_in_stats }
     showMessage(`Asset ${item.name} updated.`)
   } catch (e) {
     item.name = orig.name
     item.asset_type = orig.asset_type
     item.currency = orig.currency
     item.icon_base64 = orig.icon_base64
+    item.include_in_stats = orig.include_in_stats
     showMessage('Unable to update the asset.', true)
   }
 }
@@ -330,6 +333,15 @@ onMounted(loadData)
             </div>
             <textarea v-model="newAsset.icon_base64" rows="3" placeholder="Icon Base64 (optional)"
               class="w-full bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40 resize-y" />
+            <label class="flex items-center justify-between gap-3 py-1 cursor-pointer">
+              <span class="text-sm text-brand-textMain">Include in statistics</span>
+              <button type="button" @click="newAsset.include_in_stats = !newAsset.include_in_stats"
+                class="relative w-10 h-6 rounded-full transition-colors duration-200 focus:outline-none"
+                :class="newAsset.include_in_stats ? 'bg-brand-primary' : 'bg-white/10'">
+                <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                  :class="newAsset.include_in_stats ? 'translate-x-4' : ''"></span>
+              </button>
+            </label>
             <button @click="addAsset"
               class="flex items-center justify-center gap-1 px-4 py-2 rounded-md bg-brand-primary text-white text-sm font-semibold hover:bg-brand-secondary transition-colors">
               <Plus :size="16" /> Add Asset
@@ -358,6 +370,16 @@ onMounted(loadData)
                   <option v-for="c in currencies" :key="c.code" :value="c.code">{{ c.code }}</option>
                 </select>
               </div>
+
+              <label class="flex items-center justify-between gap-3 py-1 cursor-pointer">
+                <span class="text-sm text-brand-textMain">Include in statistics</span>
+                <button type="button" @click="item.include_in_stats = !item.include_in_stats; updateAsset(item)"
+                  class="relative w-10 h-6 rounded-full transition-colors duration-200 focus:outline-none"
+                  :class="item.include_in_stats ? 'bg-brand-primary' : 'bg-white/10'">
+                  <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                    :class="item.include_in_stats ? 'translate-x-4' : ''"></span>
+                </button>
+              </label>
 
               <div class="border-t border-white/5 pt-2">
                 <button @click="togglePrices(item)"

@@ -151,7 +151,8 @@ class PortfolioService:
 
         current_by_name = {a.name: float(a.total_value_eur) for a in portfolio}
         icons_by_name = {a.name: a.icon_base64 for a in assets}
-        names = set(assets_history.keys()) | set(current_by_name.keys())
+        include_by_name = {a.name: bool(a.include_in_stats) for a in assets}
+        names = {n for n in (set(assets_history.keys()) | set(current_by_name.keys())) if include_by_name.get(n) is True}
 
         best_growth_to_date = None
         best_single_month = None

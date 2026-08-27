@@ -130,28 +130,28 @@ const isPositive = (value) => value !== null && value !== undefined && Number(va
             {{ stats.best_single_month ? formatPct(stats.best_single_month.change_pct) : '—' }}
           </span>
         </div>
-      </div>
 
-      <div class="flex flex-col gap-1 bg-brand-surface/30 rounded-app-sm p-4 border border-white/5">
-        <div class="flex items-center gap-2 text-brand-textMuted">
-          <ArrowDownRight :size="14" />
-          <span class="text-xs uppercase tracking-widest font-semibold">Lowest Single Month</span>
-        </div>
-          <div class="flex items-center gap-2">
-            <span v-if="stats.worst_single_month && stats.worst_single_month.asset_icon"
-              class="w-6 h-6 rounded-full overflow-hidden shrink-0 ring-1 ring-white/10 bg-brand-surface">
-              <img :src="stats.worst_single_month.asset_icon" alt="icon" class="w-full h-full object-cover" />
-            </span>
-            <span class="text-brand-textMain font-semibold text-base truncate">
-              {{ stats.worst_single_month ? stats.worst_single_month.asset_name : '—' }}
-            </span>
+        <div class="flex flex-col gap-1 bg-brand-surface/30 rounded-app-sm p-4 border border-white/5">
+          <div class="flex items-center gap-2 text-brand-textMuted">
+            <ArrowDownRight :size="14" />
+            <span class="text-xs uppercase tracking-widest font-semibold">Lowest Single Month</span>
           </div>
-        <span class="text-xs text-brand-textMuted">
-          {{ stats.worst_single_month ? formatMonth(stats.worst_single_month.month) : '' }}
-        </span>
-        <span class="text-sm font-bold text-red-400">
-          {{ stats.worst_single_month ? formatPct(stats.worst_single_month.change_pct) : '—' }}
-        </span>
+            <div class="flex items-center gap-2">
+              <span v-if="stats.worst_single_month && stats.worst_single_month.asset_icon"
+                class="w-6 h-6 rounded-full overflow-hidden shrink-0 ring-1 ring-white/10 bg-brand-surface">
+                <img :src="stats.worst_single_month.asset_icon" alt="icon" class="w-full h-full object-cover" />
+              </span>
+              <span class="text-brand-textMain font-semibold text-base truncate">
+                {{ stats.worst_single_month ? stats.worst_single_month.asset_name : '—' }}
+              </span>
+            </div>
+          <span class="text-xs text-brand-textMuted">
+            {{ stats.worst_single_month ? formatMonth(stats.worst_single_month.month) : '' }}
+          </span>
+          <span class="text-sm font-bold text-red-400">
+            {{ stats.worst_single_month ? formatPct(stats.worst_single_month.change_pct) : '—' }}
+          </span>
+        </div>
       </div>
     </div>
   </main>
