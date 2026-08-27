@@ -55,7 +55,7 @@ const doughnutChartOptions = {
 <template>
   <section class="w-full flex flex-col items-start gap-2">
     <div class="flex items-center">
-      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Allocazione Asset</span>
+      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Asset Allocation</span>
     </div>
     
     <div class="w-full bg-brand-surface rounded-app-sm p-5 border border-white/5 flex items-center gap-6">

@@ -7,6 +7,40 @@ VALUES (:name, :asset_type, :currency, :icon_base64)
 RETURNING id
 """)
 
+UPDATE_ASSET = text("""
+UPDATE assets
+SET name = :name,
+    asset_type = :asset_type,
+    currency = :currency,
+    icon_base64 = :icon_base64
+WHERE id = :id
+""")
+
+GET_ASSET_PRICES = text("""
+SELECT id, asset_id, record_date, price
+FROM asset_prices
+WHERE asset_id = :asset_id
+ORDER BY record_date DESC
+""")
+
+NEW_ASSET_PRICE = text("""
+INSERT INTO asset_prices (asset_id, record_date, price)
+VALUES (:asset_id, :record_date, :price)
+RETURNING id
+""")
+
+UPDATE_ASSET_PRICE = text("""
+UPDATE asset_prices
+SET record_date = :record_date,
+    price = :price
+WHERE id = :id
+""")
+
+DELETE_ASSET_PRICE = text("""
+DELETE FROM asset_prices
+WHERE id = :id
+""")
+
 GET_ASSET_ICON = text("""
 SELECT id, icon_base64
 FROM assets
@@ -18,6 +52,31 @@ SELECT DISTINCT ON (currency) *
 FROM exchange_rates
 WHERE DATE_TRUNC('month', record_date) = DATE_TRUNC('month', CURRENT_DATE)
 ORDER BY currency, record_date DESC;
+""")
+
+GET_ALL_EXCHANGE_RATES = text("""
+SELECT id, currency, record_date, rate_to_eur
+FROM exchange_rates
+ORDER BY currency, record_date DESC
+""")
+
+NEW_EXCHANGE_RATE = text("""
+INSERT INTO exchange_rates (currency, record_date, rate_to_eur)
+VALUES (:currency, :record_date, :rate_to_eur)
+RETURNING id
+""")
+
+UPDATE_EXCHANGE_RATE = text("""
+UPDATE exchange_rates
+SET currency = :currency,
+    record_date = :record_date,
+    rate_to_eur = :rate_to_eur
+WHERE id = :id
+""")
+
+DELETE_EXCHANGE_RATE = text("""
+DELETE FROM exchange_rates
+WHERE id = :id
 """)
 
 GET_ASSETS = text("""
@@ -34,6 +93,7 @@ SELECT
     a.name, 
     a.asset_type, 
     a.currency,
+    a.icon_base64,
     COALESCE(lp.price, 1) AS price,
     COALESCE(lp.record_date, CURRENT_DATE) AS price_date
 FROM assets a
@@ -64,9 +124,10 @@ SELECT
     a.id, 
     a.name, 
     a.asset_type, 
+    at.label AS asset_label,
     a.currency, 
-    lread.record_date AS reading_date,
-    ROUND(lread.quantity, 2) AS quantity,
+    COALESCE(lread.record_date, CURRENT_DATE) AS reading_date,
+    COALESCE(ROUND(lread.quantity, 2), 0) AS quantity,
     
     ROUND(
         COALESCE(lread.quantity, 0) * COALESCE(lp.price, 1.0) * CASE 
@@ -77,6 +138,7 @@ SELECT
     )::TEXT AS total_value_eur
     
 FROM assets a
+LEFT JOIN asset_types at ON a.asset_type = at.code
 LEFT JOIN LatestReadings lread ON a.id = lread.asset_id
 LEFT JOIN LatestPrices lp ON a.id = lp.asset_id
 LEFT JOIN LatestRates lr ON a.currency = lr.currency
@@ -86,6 +148,40 @@ ORDER BY total_value_eur DESC;
 NEW_READING = text("""
 INSERT INTO asset_readings (asset_id, quantity)
 VALUES (:asset_id, :quantity)
+""")
+
+NEW_CURRENCY = text("""
+INSERT INTO currencies (code, label)
+VALUES (:code, :label)
+""")
+
+NEW_ASSET_TYPE = text("""
+INSERT INTO asset_types (code, label)
+VALUES (:code, :label)
+""")
+
+GET_CURRENCIES = text("""
+SELECT code, label
+FROM currencies
+ORDER BY code
+""")
+
+GET_ASSET_TYPES = text("""
+SELECT code, label
+FROM asset_types
+ORDER BY code
+""")
+
+UPDATE_CURRENCY_LABEL = text("""
+UPDATE currencies
+SET label = :label
+WHERE code = :code
+""")
+
+UPDATE_ASSET_TYPE_LABEL = text("""
+UPDATE asset_types
+SET label = :label
+WHERE code = :code
 """)
 
 ASSETS_HISTORY = text("""

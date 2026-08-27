@@ -7,13 +7,13 @@ import { api } from '../services/api'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip)
 
-const timeFilters = ['3 Mesi', '6 Mesi', '12 Mesi', 'Tutto']
-const activeFilter = ref('Tutto')
+const timeFilters = ['3 Months', '6 Months', '12 Months', 'All']
+const activeFilter = ref('All')
 const apiPeriodMap = {
-  '3 Mesi': '3m',
-  '6 Mesi': '6m',
-  '12 Mesi': '12m',
-  'Tutto': 'all'
+  '3 Months': '3m',
+  '6 Months': '6m',
+  '12 Months': '12m',
+  'All': 'all'
 }
 
 const rawHistoryData = ref([])
@@ -26,7 +26,7 @@ const fetchChartData = async () => {
     const data = await api.getPortfolioHistory(periodParam)
     rawHistoryData.value = data
   } catch (error) {
-    console.error("Errore nel caricamento del grafico storico:", error)
+    console.error("Error loading the history chart:", error)
   } finally {
     isLoading.value = false
   }
@@ -94,11 +94,11 @@ const chartOptions = {
       <Line v-if="rawHistoryData.length > 0 && !isLoading" :data="chartData" :options="chartOptions" />
       
       <div v-else-if="isLoading" class="absolute inset-0 flex items-center justify-center text-brand-textMuted text-xs font-medium">
-        Caricamento storico...
+        Loading history...
       </div>
 
       <div v-else class="absolute inset-0 flex items-center justify-center text-brand-textMuted text-xs font-medium">
-        Dati storici non presenti sulla piattaforma
+        No historical data available on the platform
       </div>
     </div>
 
