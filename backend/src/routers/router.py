@@ -8,6 +8,7 @@ from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate, ExchangeRateCreate
 from src.db.models.lookup import Currency, AssetType, CurrencyCreate, AssetTypeCreate, CurrencyLabelUpdate, AssetTypeLabelUpdate
 from src.db.models.price import AssetPrice, AssetPriceCreate
+from src.db.models.statistics import StatisticsResponse
 
 
 api_router = APIRouter()
@@ -114,6 +115,11 @@ async def get_portfolio(portfolio_service: PortfolioService = Depends(Provide[Co
 @inject
 async def get_portfolio_history(period: Period = Query("all"), portfolio_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[HistoryItemView]:
     return await portfolio_service.get_portfolio_history(period=period)
+
+@api_router.get("/statistics", response_model=StatisticsResponse, status_code=200)
+@inject
+async def get_statistics(asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> StatisticsResponse:
+    return await asset_service.get_statistics()
 
 @api_router.post("/readings", response_model=list[ReadingCreate], status_code=201)
 @inject

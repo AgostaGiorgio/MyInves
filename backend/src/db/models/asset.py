@@ -20,13 +20,18 @@ class Asset(BaseModel):
         default=None, 
         description="The asset icon encoded in Base64 (e.g. data:image/png;base64,...)"
     )
+    include_in_stats: bool = Field(
+        default=False,
+        description="Whether this asset should be included in the statistics calculations"
+    )
     
     def to_dict(self) -> dict:
         return {
             "name": self.name,
             "asset_type": self.asset_type,
             "currency": self.currency,
-            "icon_base64": self.icon_base64
+            "icon_base64": self.icon_base64,
+            "include_in_stats": self.include_in_stats
         }
         
 class AssetIcon(BaseModel):

@@ -290,6 +290,34 @@ class PortfolioRepository:
         return history
 
     @classmethod
+    async def get_all_portfolio_history(cls) -> list[HistoryItemView]:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_ALL_PORTFOLIO_HISTORY)
+                rows = result.mappings().all()
+                logger.debug(f"Fetched {len(rows)} portfolio history rows from the database.")
+                return [HistoryItemView(**row) for row in rows]
+            except Exception as e:
+                logger.error(f"Error fetching all portfolio history: {e}")
+                return []
+        return []
+
+    @classmethod
+    async def get_all_assets_history(cls) -> dict[str, list[HistoryItemView]]:
+        history: dict[str, list[HistoryItemView]] = {}
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_ALL_ASSETS_HISTORY)
+                rows = result.mappings().all()
+                logger.debug(f"Fetched {len(rows)} assets history rows from the database.")
+                for row in rows:
+                    item = HistoryItemView(record_date=row["record_date"], total_value_eur=row["total_value_eur"])
+                    history.setdefault(row["name"], []).append(item)
+            except Exception as e:
+                logger.error(f"Error fetching all assets history: {e}")
+        return history
+
+    @classmethod
     async def create_readings(cls, readings: list[ReadingCreate]) -> list[ReadingCreate] | None:
         async with AsyncSessionLocal() as session:
             try:
