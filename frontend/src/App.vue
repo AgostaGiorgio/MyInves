@@ -74,6 +74,8 @@ const loadDashboardData = async () => {
       }
     })
 
+    portfolioAssets.value.sort((a, b) => (a.type || '').localeCompare(b.type || ''))
+
     portfolioTotal.value = calculatedTotal
 
     rawAssets.forEach(async (rawAsset) => {

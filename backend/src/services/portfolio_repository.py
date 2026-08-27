@@ -157,3 +157,29 @@ class PortfolioRepository:
                 logger.error(f"Error creating new readings '{readings}': {e}")
                 return None
         return None
+
+    @classmethod
+    async def add_currency(cls, code: str, label: str) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    await session.execute(NEW_CURRENCY, {"code": code, "label": label})
+                    logger.debug(f"Currency '{code}' successfully created.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error creating currency '{code}': {e}")
+                return False
+        return False
+
+    @classmethod
+    async def add_asset_type(cls, code: str, label: str) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    await session.execute(NEW_ASSET_TYPE, {"code": code, "label": label})
+                    logger.debug(f"Asset type '{code}' successfully created.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error creating asset type '{code}': {e}")
+                return False
+        return False

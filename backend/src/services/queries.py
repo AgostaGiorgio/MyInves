@@ -65,8 +65,8 @@ SELECT
     a.name, 
     a.asset_type, 
     a.currency, 
-    lread.record_date AS reading_date,
-    ROUND(lread.quantity, 2) AS quantity,
+    COALESCE(lread.record_date, CURRENT_DATE) AS reading_date,
+    COALESCE(ROUND(lread.quantity, 2), 0) AS quantity,
     
     ROUND(
         COALESCE(lread.quantity, 0) * COALESCE(lp.price, 1.0) * CASE 
@@ -86,6 +86,16 @@ ORDER BY total_value_eur DESC;
 NEW_READING = text("""
 INSERT INTO asset_readings (asset_id, quantity)
 VALUES (:asset_id, :quantity)
+""")
+
+NEW_CURRENCY = text("""
+INSERT INTO currencies (code, label)
+VALUES (:code, :label)
+""")
+
+NEW_ASSET_TYPE = text("""
+INSERT INTO asset_types (code, label)
+VALUES (:code, :label)
 """)
 
 ASSETS_HISTORY = text("""

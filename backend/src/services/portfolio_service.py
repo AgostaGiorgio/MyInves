@@ -52,4 +52,12 @@ class PortfolioService:
     async def add_readings(self, readings: list[ReadingCreate]) -> list[ReadingCreate]:
         logger.debug(f"Adding new reading set: {readings}..")
         return await PortfolioRepository.create_readings(readings)
+
+    async def add_currency(self, code: str, label: str) -> bool:
+        logger.debug(f"Adding new currency {code}..")
+        return await PortfolioRepository.add_currency(code, label)
+
+    async def add_asset_type(self, code: str, label: str) -> bool:
+        logger.debug(f"Adding new asset type {code}..")
+        return await PortfolioRepository.add_asset_type(code, label)
         

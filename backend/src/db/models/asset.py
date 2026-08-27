@@ -3,7 +3,6 @@ from decimal import Decimal
 from typing import Optional, Literal
 from uuid import UUID
 from datetime import datetime
-from src.db.models.enums import CurrencyEnum, AssetTypeEnum
 
 Period = Literal["all", "3m", "6m", "12m"]
 PERIOD_MONTHS = {
@@ -15,8 +14,8 @@ PERIOD_MONTHS = {
 class Asset(BaseModel):
     id: Optional[UUID] = Field(None, description="L'ID univoco nel database")
     name: str = Field(..., description="Nome dell'asset, es. 'Conto Intesa', 'Bitcoin', 'VWCE'")
-    asset_type: AssetTypeEnum = Field(..., description="La categoria dell'investimento")
-    currency: CurrencyEnum = Field(..., description="La valuta di base o l'unità di misura")
+    asset_type: str = Field(..., description="La categoria dell'investimento (codice in asset_types)")
+    currency: str = Field(..., description="La valuta di base o l'unità di misura (codice in currencies)")
     icon_base64: Optional[str] = Field(
         default=None, 
         description="L'icona dell'asset codificata in Base64 (es. data:image/png;base64,...)"
@@ -44,8 +43,8 @@ class AssetWithPrice(Asset):
 class PortfolioItemView(BaseModel):
     id: UUID
     name: str
-    asset_type: AssetTypeEnum
-    currency: CurrencyEnum
+    asset_type: str
+    currency: str
     reading_date: Optional[datetime] = Field(None, description="Data dell'ultima lettura inserita")
     quantity: Decimal = Field(..., description="Quantità dell'asset posseduta")
     total_value_eur: Decimal = Field(..., description="Valore totale convertito in Euro")

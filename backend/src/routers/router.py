@@ -6,6 +6,7 @@ from src.services.portfolio_service import PortfolioService
 from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, HistoryItemView, Period, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
+from src.db.models.lookup import CurrencyCreate, AssetTypeCreate
 
 
 api_router = APIRouter()
@@ -55,3 +56,19 @@ async def create_asset(readings: list[ReadingCreate], asset_service: PortfolioSe
     if not created_readings:
         raise HTTPException(status_code=400, detail="Failed to create asset.")
     return created_readings
+
+@api_router.post("/currencies", status_code=201)
+@inject
+async def create_currency(currency: CurrencyCreate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> CurrencyCreate:
+    created: bool = await asset_service.add_currency(code=currency.code, label=currency.label)
+    if not created:
+        raise HTTPException(status_code=400, detail="Failed to create currency (maybe it already exists).")
+    return currency
+
+@api_router.post("/asset-types", status_code=201)
+@inject
+async def create_asset_type(asset_type: AssetTypeCreate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> AssetTypeCreate:
+    created: bool = await asset_service.add_asset_type(code=asset_type.code, label=asset_type.label)
+    if not created:
+        raise HTTPException(status_code=400, detail="Failed to create asset type (maybe it already exists).")
+    return asset_type
