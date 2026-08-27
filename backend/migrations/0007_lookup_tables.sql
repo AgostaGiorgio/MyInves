@@ -4,9 +4,7 @@ CREATE TABLE currencies (
 );
 
 INSERT INTO currencies (code, label) VALUES
-    ('EUR', 'Euro'),
-    ('USD', 'US Dollar'),
-    ('AED', 'Emirati Dirham');
+    ('EUR', 'Euro');
 
 CREATE TABLE asset_types (
     code TEXT PRIMARY KEY,
