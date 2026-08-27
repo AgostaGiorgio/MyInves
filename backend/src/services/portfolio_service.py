@@ -3,7 +3,7 @@ from uuid import UUID
 from src.services.portfolio_repository import PortfolioRepository
 from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, HistoryItemView, Period, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
-from src.db.models.exchange import ExchangeRate
+from src.db.models.exchange import ExchangeRate, ExchangeRateCreate
 from src.db.models.price import AssetPrice, AssetPriceCreate
 
 logger = logging.getLogger(__name__)
@@ -15,6 +15,22 @@ class PortfolioService:
         rates = await PortfolioRepository.get_exchange_rates()
         logger.debug(f"Retrieved {len(rates)} exchange rates.")
         return rates
+
+    async def get_all_exchange_rates(self) -> list[ExchangeRate]:
+        logger.debug("Fetching all exchange rates...")
+        return await PortfolioRepository.get_all_exchange_rates()
+
+    async def add_exchange_rate(self, data: ExchangeRateCreate) -> ExchangeRate:
+        logger.debug(f"Adding exchange rate for {data.currency}...")
+        return await PortfolioRepository.add_exchange_rate(data.currency, data.record_date, data.rate_to_eur)
+
+    async def update_exchange_rate(self, rate_id: UUID, data: ExchangeRateCreate) -> bool:
+        logger.debug(f"Updating exchange rate {rate_id}...")
+        return await PortfolioRepository.update_exchange_rate(rate_id, data.currency, data.record_date, data.rate_to_eur)
+
+    async def delete_exchange_rate(self, rate_id: UUID) -> bool:
+        logger.debug(f"Deleting exchange rate {rate_id}...")
+        return await PortfolioRepository.delete_exchange_rate(rate_id)
 
     async def add_new_asset(self, asset_data: Asset) -> Asset:
         logger.debug(f"Adding new asset: {asset_data.name}..")

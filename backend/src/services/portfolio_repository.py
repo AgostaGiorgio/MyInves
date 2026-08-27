@@ -27,6 +27,69 @@ class PortfolioRepository:
         return []
 
     @classmethod
+    async def get_all_exchange_rates(cls) -> list[ExchangeRate]:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_ALL_EXCHANGE_RATES)
+                rates = result.mappings().all()
+                logger.debug(f"Fetched {len(rates)} exchange rates from the database.")
+                return [ExchangeRate(**rate) for rate in rates]
+            except Exception as e:
+                logger.error(f"Error fetching exchange rates: {e}")
+                return []
+        return []
+
+    @classmethod
+    async def add_exchange_rate(cls, currency: str, record_date: datetime, rate_to_eur) -> ExchangeRate | None:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(
+                        NEW_EXCHANGE_RATE,
+                        {"currency": currency, "record_date": record_date, "rate_to_eur": str(rate_to_eur)},
+                    )
+                    new_id = result.scalar()
+                    logger.debug(f"Exchange rate for '{currency}' added.")
+                    return ExchangeRate(id=new_id, currency=currency, record_date=record_date, rate_to_eur=rate_to_eur)
+            except Exception as e:
+                logger.error(f"Error adding exchange rate for '{currency}': {e}")
+                return None
+        return None
+
+    @classmethod
+    async def update_exchange_rate(cls, rate_id: UUID, currency: str, record_date: datetime, rate_to_eur) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(
+                        UPDATE_EXCHANGE_RATE,
+                        {"id": str(rate_id), "currency": currency, "record_date": record_date, "rate_to_eur": str(rate_to_eur)},
+                    )
+                    if result.rowcount == 0:
+                        return False
+                    logger.debug(f"Exchange rate '{rate_id}' updated.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error updating exchange rate '{rate_id}': {e}")
+                return False
+        return False
+
+    @classmethod
+    async def delete_exchange_rate(cls, rate_id: UUID) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(DELETE_EXCHANGE_RATE, {"id": str(rate_id)})
+                    if result.rowcount == 0:
+                        return False
+                    logger.debug(f"Exchange rate '{rate_id}' deleted.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error deleting exchange rate '{rate_id}': {e}")
+                return False
+        return False
+
+    @classmethod
     async def create_asset(cls, asset_data: Asset) -> Asset | None:
         async with AsyncSessionLocal() as session:
             try:

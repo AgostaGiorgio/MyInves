@@ -54,6 +54,31 @@ WHERE DATE_TRUNC('month', record_date) = DATE_TRUNC('month', CURRENT_DATE)
 ORDER BY currency, record_date DESC;
 """)
 
+GET_ALL_EXCHANGE_RATES = text("""
+SELECT id, currency, record_date, rate_to_eur
+FROM exchange_rates
+ORDER BY currency, record_date DESC
+""")
+
+NEW_EXCHANGE_RATE = text("""
+INSERT INTO exchange_rates (currency, record_date, rate_to_eur)
+VALUES (:currency, :record_date, :rate_to_eur)
+RETURNING id
+""")
+
+UPDATE_EXCHANGE_RATE = text("""
+UPDATE exchange_rates
+SET currency = :currency,
+    record_date = :record_date,
+    rate_to_eur = :rate_to_eur
+WHERE id = :id
+""")
+
+DELETE_EXCHANGE_RATE = text("""
+DELETE FROM exchange_rates
+WHERE id = :id
+""")
+
 GET_ASSETS = text("""
 WITH LatestPrices AS (
     SELECT DISTINCT ON (asset_id) 

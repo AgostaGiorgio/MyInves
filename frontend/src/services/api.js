@@ -106,5 +106,25 @@ export const api = {
   async renameAssetType(code, label) {
     const response = await apiClient.patch(`/api/v1/asset-types/${code}`, { label })
     return response.data
+  },
+
+  async getAllExchangeRates() {
+    const response = await apiClient.get('/api/v1/exchange-rates/all')
+    return response.data
+  },
+
+  async addExchangeRate(payload) {
+    const response = await apiClient.post('/api/v1/exchange-rates', payload)
+    return response.data
+  },
+
+  async updateExchangeRate(rateId, payload) {
+    const response = await apiClient.patch(`/api/v1/exchange-rates/${rateId}`, payload)
+    return response.data
+  },
+
+  async deleteExchangeRate(rateId) {
+    const response = await apiClient.delete(`/api/v1/exchange-rates/${rateId}`)
+    return response.data
   }
 }

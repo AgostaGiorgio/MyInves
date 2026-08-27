@@ -17,6 +17,9 @@ const newAsset = ref({ name: '', asset_type: '', currency: '', icon_base64: '' }
 const currenciesOpen = ref(false)
 const assetTypesOpen = ref(false)
 const assetsOpen = ref(false)
+const exchangeRatesOpen = ref(false)
+const exchangeRates = ref([])
+const newExchangeRate = ref({ currency: '', record_date: '', rate_to_eur: '' })
 
 const showMessage = (text, error = false) => {
   message.value = text
@@ -29,7 +32,7 @@ const toLocalInput = (iso) => {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return ''
   const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 const loadData = async () => {
@@ -179,8 +182,8 @@ const addPrice = async (item) => {
 
 const savePrice = async (item, price) => {
   const orig = price._original
-  const recordDate = price._localDate ? new Date(price._localDate).toISOString() : orig.record_date
-  if (recordDate === orig.record_date && price.price === orig.price) return
+  const recordDate = price._localDate || toLocalInput(orig.record_date)
+  if (recordDate === toLocalInput(orig.record_date) && price.price === orig.price) return
   try {
     await api.updateAssetPrice(price.id, {
       record_date: recordDate,
@@ -203,6 +206,64 @@ const deletePrice = async (item, price) => {
     await reloadPrices(item)
   } catch (e) {
     showMessage('Impossibile eliminare il prezzo.', true)
+  }
+}
+
+const decorateRates = (rows) => rows.map(r => ({
+  ...r,
+  rate_to_eur: String(r.rate_to_eur),
+  _localDate: toLocalInput(r.record_date),
+  _original: { currency: r.currency, record_date: r.record_date, rate_to_eur: String(r.rate_to_eur) },
+}))
+
+const reloadExchangeRates = async () => {
+  exchangeRates.value = decorateRates(await api.getAllExchangeRates())
+}
+
+const toggleExchangeRates = async () => {
+  exchangeRatesOpen.value = !exchangeRatesOpen.value
+  if (exchangeRatesOpen.value && exchangeRates.value.length === 0) {
+    await reloadExchangeRates()
+  }
+}
+
+const addExchangeRate = async () => {
+  const { currency, record_date, rate_to_eur } = newExchangeRate.value
+  if (!currency || !record_date || rate_to_eur === '') { showMessage('Seleziona valuta, data e tasso.', true); return }
+  try {
+    await api.addExchangeRate({ currency, record_date, rate_to_eur: parseFloat(rate_to_eur) })
+    newExchangeRate.value = { currency: '', record_date: '', rate_to_eur: '' }
+    showMessage('Cambio valuta aggiunto.')
+    await reloadExchangeRates()
+  } catch (e) {
+    showMessage('Impossibile aggiungere il cambio valuta.', true)
+  }
+}
+
+const saveExchangeRate = async (rate) => {
+  const orig = rate._original
+  const recordDate = rate._localDate || toLocalInput(orig.record_date)
+  if (rate.currency === orig.currency && recordDate === toLocalInput(orig.record_date) && rate.rate_to_eur === orig.rate_to_eur) return
+  try {
+    await api.updateExchangeRate(rate.id, { currency: rate.currency, record_date: recordDate, rate_to_eur: parseFloat(rate.rate_to_eur) })
+    await reloadExchangeRates()
+    showMessage('Cambio valuta aggiornato.')
+  } catch (e) {
+    rate.currency = orig.currency
+    rate._localDate = toLocalInput(orig.record_date)
+    rate.rate_to_eur = orig.rate_to_eur
+    showMessage('Impossibile aggiornare il cambio valuta.', true)
+  }
+}
+
+const deleteExchangeRate = async (rate) => {
+  if (!confirm(`Eliminare il cambio ${rate.currency} del ${new Date(rate.record_date).toLocaleDateString('it-IT')}?`)) return
+  try {
+    await api.deleteExchangeRate(rate.id)
+    showMessage('Cambio valuta eliminato.')
+    await reloadExchangeRates()
+  } catch (e) {
+    showMessage('Impossibile eliminare il cambio valuta.', true)
   }
 }
 
@@ -301,14 +362,14 @@ onMounted(loadData)
               <div class="border-t border-white/5 pt-2">
                 <button @click="togglePrices(item)"
                   class="w-full flex items-center justify-between py-1 text-brand-textMuted hover:text-brand-primary transition-colors">
-                  <span class="text-xs font-semibold uppercase tracking-widest">Prezzi</span>
+                  <span class="text-xs font-semibold uppercase tracking-widest">Valori dell asset</span>
                   <ChevronDown :size="16" class="transition-transform duration-200"
                     :class="item.pricesOpen ? 'rotate-180' : ''" />
                 </button>
 
                 <div v-show="item.pricesOpen" class="flex flex-col gap-2 pt-2">
                   <div class="flex flex-col sm:flex-row gap-2">
-                    <input v-model="item.newPrice.record_date" type="datetime-local"
+                    <input v-model="item.newPrice.record_date" type="date"
                       class="flex-1 bg-brand-surface border border-white/10 rounded-md py-1 px-2 text-brand-textMain text-sm outline-none" />
                     <input v-model="item.newPrice.price" type="number" step="any" placeholder="Prezzo"
                       class="flex-1 bg-brand-surface border border-white/10 rounded-md py-1 px-2 text-brand-textMain text-sm outline-none placeholder-brand-textMuted/40" />
@@ -321,7 +382,7 @@ onMounted(loadData)
                   <div class="flex flex-col gap-1.5">
                     <div v-for="p in item.prices" :key="p.id"
                       class="flex items-center gap-2 bg-brand-surface/60 rounded-md px-2 py-1.5 border border-white/5">
-                      <input v-model="p._localDate" type="datetime-local" @change="savePrice(item, p)"
+                      <input v-model="p._localDate" type="date" @change="savePrice(item, p)"
                         class="flex-1 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-0.5 px-1 text-brand-textMain text-xs outline-none transition-all" />
                       <input v-model="p.price" type="number" step="any" @blur="savePrice(item, p)"
                         class="w-20 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-0.5 px-1 text-brand-textMain text-xs text-right outline-none transition-all" />
@@ -333,6 +394,50 @@ onMounted(loadData)
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+      
+      <section class="w-full bg-brand-surface rounded-app-sm border border-white/5 overflow-hidden">
+        <button @click="toggleExchangeRates"
+          class="w-full flex items-center justify-between p-4 hover:bg-brand-surface/80 transition-colors">
+          <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Cambi Valuta</span>
+          <ChevronDown :size="18" class="text-brand-textMuted transition-transform duration-200"
+            :class="exchangeRatesOpen ? 'rotate-180' : ''" />
+        </button>
+
+        <div v-show="exchangeRatesOpen" class="px-4 pb-4 pt-4 border-t border-white/5 flex flex-col gap-3">
+          <div class="flex flex-col sm:flex-row gap-2">
+            <select v-model="newExchangeRate.currency" placeholder="Valuta"
+              class="app-select flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none">
+              <option value="" disabled>Valuta</option>
+              <option v-for="c in currencies.filter(x => x.code !== 'EUR')" :key="c.code" :value="c.code">{{ c.code }}</option>
+            </select>
+            <input v-model="newExchangeRate.record_date" type="date"
+              class="flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none" />
+            <input v-model="newExchangeRate.rate_to_eur" type="number" step="any" placeholder="Tasso/1 EUR"
+              class="flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40" />
+            <button @click="addExchangeRate"
+              class="flex items-center justify-center gap-1 px-4 py-2 rounded-md bg-brand-primary text-white text-sm font-semibold hover:bg-brand-secondary transition-colors shrink-0">
+              <Plus :size="16" /> Aggiungi
+            </button>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <div v-for="r in exchangeRates" :key="r.id"
+              class="flex items-center gap-2 bg-brand-background/40 rounded-md px-2 py-1.5 border border-white/5">
+              <select v-model="r.currency" @change="saveExchangeRate(r)"
+                class="app-select w-20 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-0.5 px-1 text-brand-textMain text-xs outline-none transition-all">
+                <option v-for="c in currencies.filter(x => x.code !== 'EUR')" :key="c.code" :value="c.code">{{ c.code }}</option>
+              </select>
+              <input v-model="r._localDate" type="date" @change="saveExchangeRate(r)"
+                class="flex-1 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-0.5 px-1 text-brand-textMain text-xs outline-none transition-all" />
+              <input v-model="r.rate_to_eur" type="number" step="any" @blur="saveExchangeRate(r)"
+                class="w-24 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-0.5 px-1 text-brand-textMain text-xs text-right outline-none transition-all" />
+              <button @click="deleteExchangeRate(r)" title="Elimina"
+                class="text-brand-textMuted hover:text-red-400 transition-colors shrink-0">✕</button>
+            </div>
+            <span v-if="exchangeRates.length === 0" class="text-brand-textMuted text-xs">Nessun cambio valuta registrato.</span>
           </div>
         </div>
       </section>

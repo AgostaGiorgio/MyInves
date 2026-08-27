@@ -5,7 +5,7 @@ from uuid import UUID
 from src.services.portfolio_service import PortfolioService
 from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, HistoryItemView, Period, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
-from src.db.models.exchange import ExchangeRate
+from src.db.models.exchange import ExchangeRate, ExchangeRateCreate
 from src.db.models.lookup import Currency, AssetType, CurrencyCreate, AssetTypeCreate, CurrencyLabelUpdate, AssetTypeLabelUpdate
 from src.db.models.price import AssetPrice, AssetPriceCreate
 
@@ -16,6 +16,34 @@ api_router = APIRouter()
 @inject
 async def get_exchange_rates(asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[ExchangeRate]:
     return await asset_service.get_exchange_rates()
+
+@api_router.get("/exchange-rates/all", response_model=list[ExchangeRate], status_code=200)
+@inject
+async def get_all_exchange_rates(asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[ExchangeRate]:
+    return await asset_service.get_all_exchange_rates()
+
+@api_router.post("/exchange-rates", response_model=ExchangeRate, status_code=201)
+@inject
+async def add_exchange_rate(rate: ExchangeRateCreate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> ExchangeRate:
+    created: ExchangeRate | None = await asset_service.add_exchange_rate(rate)
+    if not created:
+        raise HTTPException(status_code=400, detail="Failed to add exchange rate.")
+    return created
+
+@api_router.patch("/exchange-rates/{rate_id}", response_model=ExchangeRateCreate, status_code=200)
+@inject
+async def update_exchange_rate(rate_id: UUID, rate: ExchangeRateCreate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> ExchangeRateCreate:
+    updated: bool = await asset_service.update_exchange_rate(rate_id, rate)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Exchange rate not found.")
+    return rate
+
+@api_router.delete("/exchange-rates/{rate_id}", status_code=204)
+@inject
+async def delete_exchange_rate(rate_id: UUID, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> None:
+    deleted: bool = await asset_service.delete_exchange_rate(rate_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Exchange rate not found.")
 
 @api_router.get("/assets", response_model=list[AssetWithPrice], status_code=200)
 @inject

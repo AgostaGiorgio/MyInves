@@ -9,3 +9,8 @@ class ExchangeRate(BaseModel):
     currency: str = Field(..., description="La valuta (es. USD, AED, GOLD_G)")
     record_date: datetime = Field(..., description="La data del tasso di cambio")
     rate_to_eur: Decimal = Field(..., description="Il valore in Euro di 1 unità di questa valuta")
+
+class ExchangeRateCreate(BaseModel):
+    currency: str = Field(..., description="La valuta (es. USD, AED, GOLD_G)")
+    record_date: datetime = Field(..., description="La data del tasso di cambio")
+    rate_to_eur: Decimal = Field(..., description="Il valore in Euro di 1 unità di questa valuta")
