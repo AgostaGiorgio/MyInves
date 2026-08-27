@@ -153,6 +153,30 @@ const isPositive = (value) => value !== null && value !== undefined && Number(va
           </span>
         </div>
       </div>
+
+      <div class="flex flex-col gap-3 bg-brand-surface/30 rounded-app-sm p-4 border border-white/5">
+        <div class="flex items-center gap-2 text-brand-textMuted">
+          <Percent :size="14" />
+          <span class="text-xs uppercase tracking-widest font-semibold">Avg Monthly Growth per Asset</span>
+        </div>
+        <div v-if="!stats.per_asset_avg_monthly || stats.per_asset_avg_monthly.length === 0"
+          class="text-brand-textMuted text-sm">No data available.</div>
+        <div v-else class="flex flex-col divide-y divide-white/5">
+          <div v-for="row in stats.per_asset_avg_monthly" :key="row.asset_name"
+            class="flex items-center justify-between gap-3 py-2">
+            <div class="flex items-center gap-3 min-w-0">
+              <span v-if="row.asset_icon"
+                class="w-6 h-6 rounded-full overflow-hidden shrink-0 ring-1 ring-white/10 bg-brand-surface">
+                <img :src="row.asset_icon" alt="icon" class="w-full h-full object-cover" />
+              </span>
+              <span class="text-brand-textMain text-sm font-medium truncate">{{ row.asset_name }}</span>
+            </div>
+            <span class="text-sm font-semibold" :class="pctColor(row.avg_monthly_pct)">
+              {{ formatPct(row.avg_monthly_pct) }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 </template>

@@ -6,7 +6,7 @@ from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetI
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate, ExchangeRateCreate
 from src.db.models.price import AssetPrice, AssetPriceCreate
-from src.db.models.statistics import StatisticsResponse, SingleMonthChange, BestAssetResult
+from src.db.models.statistics import StatisticsResponse, SingleMonthChange, BestAssetResult, AssetMonthlyAverage
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +159,7 @@ class PortfolioService:
         worst_single_month = None
         global_best_pct = None
         global_worst_pct = None
+        per_asset_avg_monthly = []
 
         for name in names:
             history_items = assets_history.get(name, [])
@@ -175,10 +176,12 @@ class PortfolioService:
             if name in current_by_name:
                 dates.append(datetime.now())
 
+            monthly_changes = []
             for i in range(len(pts) - 1):
                 c = self._pct(pts[i], pts[i + 1])
                 if c is None:
                     continue
+                monthly_changes.append(c)
                 month = self._month_label(dates[i + 1])
                 if global_best_pct is None or c > global_best_pct:
                     global_best_pct = c
@@ -187,10 +190,20 @@ class PortfolioService:
                     global_worst_pct = c
                     worst_single_month = SingleMonthChange(asset_name=name, asset_icon=icons_by_name.get(name), month=month, change_pct=round(c, 2))
 
+            if monthly_changes:
+                per_asset_avg_monthly.append(AssetMonthlyAverage(
+                    asset_name=name,
+                    asset_icon=icons_by_name.get(name),
+                    avg_monthly_pct=round(sum(monthly_changes) / len(monthly_changes), 2),
+                ))
+
+        per_asset_avg_monthly.sort(key=lambda a: a.avg_monthly_pct if a.avg_monthly_pct is not None else 0, reverse=True)
+
         return StatisticsResponse(
             current_total_eur=round(current_total, 2),
             change_vs_prev_month_pct=round(change_vs_prev, 2) if change_vs_prev is not None else None,
             avg_monthly_growth_pct=round(avg_monthly, 2) if avg_monthly is not None else None,
+            per_asset_avg_monthly=per_asset_avg_monthly,
             best_growth_to_date=best_growth_to_date,
             best_single_month=best_single_month,
             worst_single_month=worst_single_month,
