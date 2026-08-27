@@ -31,7 +31,7 @@ const fetchHistory = async () => {
   try {
     rawHistoryData.value = await api.getAssetsHistory()
   } catch (error) {
-    console.error("Errore nel caricamento storico asset:", error)
+    console.error("Error loading asset history:", error)
   } finally {
     isLoading.value = false
   }
@@ -107,7 +107,7 @@ const chartOptions = {
 <template>
   <section class="w-full flex flex-col items-start gap-2">
     <div class="flex items-center">
-      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Confronta Andamento</span>
+      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Compare Trend</span>
     </div>
 
     <div class="w-full flex overflow-x-auto gap-2 hide-scrollbar">
@@ -131,11 +131,11 @@ const chartOptions = {
       <Line v-if="selectedAssetIds.length > 0 && !isLoading" :data="comparisonChartData" :options="chartOptions" />
       
       <div v-else-if="isLoading" class="absolute inset-0 flex items-center justify-center text-brand-textMuted text-xs font-medium">
-        Caricamento storico...
+        Loading history...
       </div>
       
       <div v-else class="absolute inset-0 flex items-center justify-center text-brand-textMuted text-xs font-medium">
-        Seleziona un asset per visualizzare il grafico
+        Select an asset to view the chart
       </div>
     </div>
   </section>

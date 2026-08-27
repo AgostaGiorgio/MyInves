@@ -71,12 +71,12 @@ const loadDashboardData = async () => {
           if (portfolioTarget) portfolioTarget.iconUrl = rawAsset.icon_base64
         }
       } catch (err) {
-        console.warn(`Nessuna icona trovata per ${rawAsset.name}`)
+        console.warn(`No icon found for ${rawAsset.name}`)
       }
     })
 
   } catch (error) {
-    console.error("Errore fatale nel caricamento del carosello:", error)
+    console.error("Fatal error loading the carousel:", error)
   }
 }
 
@@ -94,8 +94,8 @@ const handleReadingsSubmit = async (payload) => {
     await loadDashboardData()
     refreshKey.value += 1
   } catch (error) {
-    console.error("Errore durante il salvataggio delle letture:", error)
-    alert("Si è verificato un errore durante il salvataggio. Riprova.")
+    console.error("Error saving readings:", error)
+    alert("An error occurred during saving. Please try again.")
   }
 }
 

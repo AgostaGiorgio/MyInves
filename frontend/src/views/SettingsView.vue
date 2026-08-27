@@ -45,7 +45,7 @@ const loadData = async () => {
     currencies.value = cur.map(item => ({ ...item, _originalLabel: item.label }))
     assetTypes.value = types.map(item => ({ ...item, _originalLabel: item.label }))
   } catch (e) {
-    showMessage('Errore nel caricamento dei dati.', true)
+    showMessage('Error loading data.', true)
   } finally {
     loading.value = false
   }
@@ -61,42 +61,42 @@ const loadAssets = async () => {
       newPrice: { record_date: '', price: '' },
     }))
   } catch (e) {
-    showMessage('Errore nel caricamento degli asset.', true)
+    showMessage('Error loading assets.', true)
   }
 }
 
 const addCurrency = async () => {
   const code = newCurrency.value.code.trim().toUpperCase()
   const label = newCurrency.value.label.trim()
-  if (!code || !label) { showMessage('Inserisci codice e nome della valuta.', true); return }
+  if (!code || !label) { showMessage('Enter currency code and name.', true); return }
   try {
     await api.createCurrency({ code, label })
     newCurrency.value = { code: '', label: '' }
-    showMessage(`Valuta ${code} aggiunta.`)
+    showMessage(`Currency ${code} added.`)
     await loadData()
   } catch (e) {
-    showMessage('Impossibile aggiungere la valuta (forse esiste già).', true)
+    showMessage('Unable to add the currency (it may already exist).', true)
   }
 }
 
 const addAssetType = async () => {
   const code = newAssetType.value.code.trim().toUpperCase()
   const label = newAssetType.value.label.trim()
-  if (!code || !label) { showMessage('Inserisci codice e nome del tipo asset.', true); return }
+  if (!code || !label) { showMessage('Enter asset type code and name.', true); return }
   try {
     await api.createAssetType({ code, label })
     newAssetType.value = { code: '', label: '' }
-    showMessage(`Tipo asset ${code} aggiunto.`)
+    showMessage(`Asset type ${code} added.`)
     await loadData()
   } catch (e) {
-    showMessage('Impossibile aggiungere il tipo asset (forse esiste già).', true)
+    showMessage('Unable to add the asset type (it may already exist).', true)
   }
 }
 
 const addAsset = async () => {
   const name = newAsset.value.name.trim()
   const { asset_type, currency } = newAsset.value
-  if (!name || !asset_type || !currency) { showMessage('Compila nome, tipo e valuta.', true); return }
+  if (!name || !asset_type || !currency) { showMessage('Fill in name, type and currency.', true); return }
   try {
     await api.createAsset({
       name,
@@ -105,10 +105,10 @@ const addAsset = async () => {
       icon_base64: newAsset.value.icon_base64 || null,
     })
     newAsset.value = { name: '', asset_type: '', currency: '', icon_base64: '' }
-    showMessage(`Asset ${name} aggiunto.`)
+    showMessage(`Asset ${name} added.`)
     await loadAssets()
   } catch (e) {
-    showMessage('Impossibile aggiungere l\'asset.', true)
+    showMessage('Unable to add the asset.', true)
   }
 }
 
@@ -123,13 +123,13 @@ const updateAsset = async (item) => {
       icon_base64: item.icon_base64 || null,
     })
     item._original = { name: item.name, asset_type: item.asset_type, currency: item.currency, icon_base64: item.icon_base64 || '' }
-    showMessage(`Asset ${item.name} aggiornato.`)
+    showMessage(`Asset ${item.name} updated.`)
   } catch (e) {
     item.name = orig.name
     item.asset_type = orig.asset_type
     item.currency = orig.currency
     item.icon_base64 = orig.icon_base64
-    showMessage('Impossibile aggiornare l\'asset.', true)
+    showMessage('Unable to update the asset.', true)
   }
 }
 
@@ -169,14 +169,14 @@ const togglePrices = async (item) => {
 
 const addPrice = async (item) => {
   const { record_date, price } = item.newPrice
-  if (!record_date || price === '') { showMessage('Inserisci data e prezzo.', true); return }
+  if (!record_date || price === '') { showMessage('Enter date and price.', true); return }
   try {
     await api.addAssetPrice(item.id, { record_date, price: parseFloat(price) })
     item.newPrice = { record_date: '', price: '' }
-    showMessage('Prezzo aggiunto.')
+    showMessage('Price added.')
     await reloadPrices(item)
   } catch (e) {
-    showMessage('Impossibile aggiungere il prezzo.', true)
+    showMessage('Unable to add the price.', true)
   }
 }
 
@@ -190,22 +190,22 @@ const savePrice = async (item, price) => {
       price: parseFloat(price.price),
     })
     await reloadPrices(item)
-    showMessage('Prezzo aggiornato.')
+    showMessage('Price updated.')
   } catch (e) {
     price._localDate = toLocalInput(orig.record_date)
     price.price = orig.price
-    showMessage('Impossibile aggiornare il prezzo.', true)
+    showMessage('Unable to update the price.', true)
   }
 }
 
 const deletePrice = async (item, price) => {
-  if (!confirm(`Eliminare il prezzo del ${new Date(price.record_date).toLocaleDateString('it-IT')}?`)) return
+  if (!confirm(`Delete the price of ${new Date(price.record_date).toLocaleDateString('it-IT')}?`)) return
   try {
     await api.deleteAssetPrice(price.id)
-    showMessage('Prezzo eliminato.')
+    showMessage('Price deleted.')
     await reloadPrices(item)
   } catch (e) {
-    showMessage('Impossibile eliminare il prezzo.', true)
+    showMessage('Unable to delete the price.', true)
   }
 }
 
@@ -229,14 +229,14 @@ const toggleExchangeRates = async () => {
 
 const addExchangeRate = async () => {
   const { currency, record_date, rate_to_eur } = newExchangeRate.value
-  if (!currency || !record_date || rate_to_eur === '') { showMessage('Seleziona valuta, data e tasso.', true); return }
+  if (!currency || !record_date || rate_to_eur === '') { showMessage('Select currency, date and rate.', true); return }
   try {
     await api.addExchangeRate({ currency, record_date, rate_to_eur: parseFloat(rate_to_eur) })
     newExchangeRate.value = { currency: '', record_date: '', rate_to_eur: '' }
-    showMessage('Cambio valuta aggiunto.')
+    showMessage('Exchange rate added.')
     await reloadExchangeRates()
   } catch (e) {
-    showMessage('Impossibile aggiungere il cambio valuta.', true)
+    showMessage('Unable to add the exchange rate.', true)
   }
 }
 
@@ -247,23 +247,23 @@ const saveExchangeRate = async (rate) => {
   try {
     await api.updateExchangeRate(rate.id, { currency: rate.currency, record_date: recordDate, rate_to_eur: parseFloat(rate.rate_to_eur) })
     await reloadExchangeRates()
-    showMessage('Cambio valuta aggiornato.')
+    showMessage('Exchange rate updated.')
   } catch (e) {
     rate.currency = orig.currency
     rate._localDate = toLocalInput(orig.record_date)
     rate.rate_to_eur = orig.rate_to_eur
-    showMessage('Impossibile aggiornare il cambio valuta.', true)
+    showMessage('Unable to update the exchange rate.', true)
   }
 }
 
 const deleteExchangeRate = async (rate) => {
-  if (!confirm(`Eliminare il cambio ${rate.currency} del ${new Date(rate.record_date).toLocaleDateString('it-IT')}?`)) return
+  if (!confirm(`Delete the exchange ${rate.currency} of ${new Date(rate.record_date).toLocaleDateString('it-IT')}?`)) return
   try {
     await api.deleteExchangeRate(rate.id)
-    showMessage('Cambio valuta eliminato.')
+    showMessage('Exchange rate deleted.')
     await reloadExchangeRates()
   } catch (e) {
-    showMessage('Impossibile eliminare il cambio valuta.', true)
+    showMessage('Unable to delete the exchange rate.', true)
   }
 }
 
@@ -272,10 +272,10 @@ const renameCurrency = async (item) => {
   try {
     await api.renameCurrency(item.code, item.label)
     item._originalLabel = item.label
-    showMessage(`Valuta ${item.code} rinominata.`)
+    showMessage(`Currency ${item.code} renamed.`)
   } catch (e) {
     item.label = item._originalLabel
-    showMessage('Impossibile rinominare la valuta.', true)
+    showMessage('Unable to rename the currency.', true)
   }
 }
 
@@ -284,10 +284,10 @@ const renameAssetType = async (item) => {
   try {
     await api.renameAssetType(item.code, item.label)
     item._originalLabel = item.label
-    showMessage(`Tipo asset ${item.code} rinominato.`)
+    showMessage(`Asset type ${item.code} renamed.`)
   } catch (e) {
     item.label = item._originalLabel
-    showMessage('Impossibile rinominare il tipo asset.', true)
+    showMessage('Unable to rename the asset type.', true)
   }
 }
 
@@ -314,25 +314,25 @@ onMounted(loadData)
 
         <div v-show="assetsOpen" class="px-4 pb-4 pt-4 border-t border-white/5 flex flex-col gap-3">
           <div class="flex flex-col gap-2">
-            <input v-model="newAsset.name" placeholder="Nome (es. Bitcoin)"
+            <input v-model="newAsset.name" placeholder="Name (e.g. Bitcoin)"
               class="w-full bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40" />
             <div class="flex flex-col sm:flex-row gap-2">
               <select v-model="newAsset.asset_type"
                 class="app-select flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none">
-                <option value="" disabled>Tipo</option>
+                <option value="" disabled>Type</option>
                 <option v-for="t in assetTypes" :key="t.code" :value="t.code">{{ t.label }}</option>
               </select>
               <select v-model="newAsset.currency"
                 class="app-select flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none">
-                <option value="" disabled>Valuta</option>
+                <option value="" disabled>Currency</option>
                 <option v-for="c in currencies" :key="c.code" :value="c.code">{{ c.code }}</option>
               </select>
             </div>
-            <textarea v-model="newAsset.icon_base64" rows="3" placeholder="Icona Base64 (opzionale)"
+            <textarea v-model="newAsset.icon_base64" rows="3" placeholder="Icon Base64 (optional)"
               class="w-full bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40 resize-y" />
             <button @click="addAsset"
               class="flex items-center justify-center gap-1 px-4 py-2 rounded-md bg-brand-primary text-white text-sm font-semibold hover:bg-brand-secondary transition-colors">
-              <Plus :size="16" /> Aggiungi Asset
+              <Plus :size="16" /> Add Asset
             </button>
           </div>
 
@@ -340,12 +340,12 @@ onMounted(loadData)
             <div v-for="item in assets" :key="item.id"
               class="flex flex-col gap-2 bg-brand-background rounded-md px-3 py-2 border border-white/5">
               <div class="flex items-center gap-3">
-                <button @click="openIconEditor(item)" title="Modifica icona"
+                <button @click="openIconEditor(item)" title="Edit icon"
                   class="relative w-8 h-8 rounded-full overflow-hidden shrink-0 bg-brand-surface ring-1 ring-white/10 hover:ring-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all">
-                  <img v-if="item.icon_base64" :src="item.icon_base64" alt="icona" class="w-full h-full object-cover" />
+                  <img v-if="item.icon_base64" :src="item.icon_base64" alt="icon" class="w-full h-full object-cover" />
                   <span v-else class="w-full h-full flex items-center justify-center text-brand-primary text-xs font-bold">{{ item.name.charAt(0) }}</span>
                 </button>
-                <input v-model="item.name" @blur="updateAsset(item)" placeholder="Nome"
+                <input v-model="item.name" @blur="updateAsset(item)" placeholder="Name"
                   class="flex-1 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-1 px-2 text-brand-textMain text-sm outline-none transition-all" />
               </div>
               <div class="flex flex-col sm:flex-row gap-2">
@@ -362,7 +362,7 @@ onMounted(loadData)
               <div class="border-t border-white/5 pt-2">
                 <button @click="togglePrices(item)"
                   class="w-full flex items-center justify-between py-1 text-brand-textMuted hover:text-brand-primary transition-colors">
-                  <span class="text-xs font-semibold uppercase tracking-widest">Valori dell asset</span>
+                  <span class="text-xs font-semibold uppercase tracking-widest">Asset values</span>
                   <ChevronDown :size="16" class="transition-transform duration-200"
                     :class="item.pricesOpen ? 'rotate-180' : ''" />
                 </button>
@@ -371,11 +371,11 @@ onMounted(loadData)
                   <div class="flex flex-col sm:flex-row gap-2">
                     <input v-model="item.newPrice.record_date" type="date"
                       class="flex-1 bg-brand-surface border border-white/10 rounded-md py-1 px-2 text-brand-textMain text-sm outline-none" />
-                    <input v-model="item.newPrice.price" type="number" step="any" placeholder="Prezzo"
+                    <input v-model="item.newPrice.price" type="number" step="any" placeholder="Price"
                       class="flex-1 bg-brand-surface border border-white/10 rounded-md py-1 px-2 text-brand-textMain text-sm outline-none placeholder-brand-textMuted/40" />
                     <button @click="addPrice(item)"
                       class="flex items-center justify-center gap-1 px-3 py-1 rounded-md bg-brand-primary text-white text-xs font-semibold hover:bg-brand-secondary transition-colors">
-                      <Plus :size="14" /> Aggiungi
+                      <Plus :size="14" /> Add
                     </button>
                   </div>
 
@@ -386,10 +386,10 @@ onMounted(loadData)
                         class="flex-1 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-0.5 px-1 text-brand-textMain text-xs outline-none transition-all" />
                       <input v-model="p.price" type="number" step="any" @blur="savePrice(item, p)"
                         class="w-20 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-0.5 px-1 text-brand-textMain text-xs text-right outline-none transition-all" />
-                      <button @click="deletePrice(item, p)" title="Elimina"
+                      <button @click="deletePrice(item, p)" title="Delete"
                         class="text-brand-textMuted hover:text-red-400 transition-colors shrink-0">✕</button>
                     </div>
-                    <span v-if="item.prices.length === 0" class="text-brand-textMuted text-xs">Nessun prezzo registrato.</span>
+                    <span v-if="item.prices.length === 0" class="text-brand-textMuted text-xs">No price recorded.</span>
                   </div>
                 </div>
               </div>
@@ -401,25 +401,25 @@ onMounted(loadData)
       <section class="w-full bg-brand-surface rounded-app-sm border border-white/5 overflow-hidden">
         <button @click="toggleExchangeRates"
           class="w-full flex items-center justify-between p-4 hover:bg-brand-surface/80 transition-colors">
-          <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Cambi Valuta</span>
+          <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Exchange Rates</span>
           <ChevronDown :size="18" class="text-brand-textMuted transition-transform duration-200"
             :class="exchangeRatesOpen ? 'rotate-180' : ''" />
         </button>
 
         <div v-show="exchangeRatesOpen" class="px-4 pb-4 pt-4 border-t border-white/5 flex flex-col gap-3">
           <div class="flex flex-col sm:flex-row gap-2">
-            <select v-model="newExchangeRate.currency" placeholder="Valuta"
+            <select v-model="newExchangeRate.currency" placeholder="Currency"
               class="app-select flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none">
-              <option value="" disabled>Valuta</option>
+              <option value="" disabled>Currency</option>
               <option v-for="c in currencies.filter(x => x.code !== 'EUR')" :key="c.code" :value="c.code">{{ c.code }}</option>
             </select>
             <input v-model="newExchangeRate.record_date" type="date"
               class="flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none" />
-            <input v-model="newExchangeRate.rate_to_eur" type="number" step="any" placeholder="Tasso/1 EUR"
+            <input v-model="newExchangeRate.rate_to_eur" type="number" step="any" placeholder="Rate/1 EUR"
               class="flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40" />
             <button @click="addExchangeRate"
               class="flex items-center justify-center gap-1 px-4 py-2 rounded-md bg-brand-primary text-white text-sm font-semibold hover:bg-brand-secondary transition-colors shrink-0">
-              <Plus :size="16" /> Aggiungi
+              <Plus :size="16" /> Add
             </button>
           </div>
 
@@ -434,10 +434,10 @@ onMounted(loadData)
                 class="flex-1 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-0.5 px-1 text-brand-textMain text-xs outline-none transition-all" />
               <input v-model="r.rate_to_eur" type="number" step="any" @blur="saveExchangeRate(r)"
                 class="w-24 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-0.5 px-1 text-brand-textMain text-xs text-right outline-none transition-all" />
-              <button @click="deleteExchangeRate(r)" title="Elimina"
+              <button @click="deleteExchangeRate(r)" title="Delete"
                 class="text-brand-textMuted hover:text-red-400 transition-colors shrink-0">✕</button>
             </div>
-            <span v-if="exchangeRates.length === 0" class="text-brand-textMuted text-xs">Nessun cambio valuta registrato.</span>
+            <span v-if="exchangeRates.length === 0" class="text-brand-textMuted text-xs">No exchange rate recorded.</span>
           </div>
         </div>
       </section>
@@ -445,20 +445,20 @@ onMounted(loadData)
       <section class="w-full bg-brand-surface rounded-app-sm border border-white/5 overflow-hidden">
         <button @click="currenciesOpen = !currenciesOpen"
           class="w-full flex items-center justify-between p-4 hover:bg-brand-surface/80 transition-colors">
-          <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Valute</span>
+          <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Currencies</span>
           <ChevronDown :size="18" class="text-brand-textMuted transition-transform duration-200"
             :class="currenciesOpen ? 'rotate-180' : ''" />
         </button>
 
         <div v-show="currenciesOpen" class="px-4 pb-4 pt-4 border-t border-white/5 flex flex-col gap-3">
           <div class="flex flex-col sm:flex-row gap-2">
-            <input v-model="newCurrency.code" placeholder="Codice (es. GBP)"
+            <input v-model="newCurrency.code" placeholder="Code (e.g. GBP)"
               class="flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40 uppercase" />
-            <input v-model="newCurrency.label" placeholder="Nome (es. Sterlina britannica)"
+            <input v-model="newCurrency.label" placeholder="Name (e.g. British pound)"
               class="flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40" />
             <button @click="addCurrency"
               class="flex items-center justify-center gap-1 px-4 py-2 rounded-md bg-brand-primary text-white text-sm font-semibold hover:bg-brand-secondary transition-colors">
-              <Plus :size="16" /> Aggiungi
+              <Plus :size="16" /> Add
             </button>
           </div>
 
@@ -466,7 +466,7 @@ onMounted(loadData)
             <div v-for="item in currencies" :key="item.code"
               class="flex items-center gap-2 bg-brand-background rounded-md px-3 py-2 border border-white/5">
               <span class="text-brand-textMuted text-xs font-bold w-12 uppercase shrink-0">{{ item.code }}</span>
-              <input v-model="item.label" @blur="renameCurrency(item)" placeholder="Nome visualizzato"
+              <input v-model="item.label" @blur="renameCurrency(item)" placeholder="Display name"
                 class="flex-1 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-1 px-2 text-brand-textMain text-sm outline-none transition-all" />
             </div>
           </div>
@@ -476,20 +476,20 @@ onMounted(loadData)
       <section class="w-full bg-brand-surface rounded-app-sm border border-white/5 overflow-hidden">
         <button @click="assetTypesOpen = !assetTypesOpen"
           class="w-full flex items-center justify-between p-4 hover:bg-brand-surface/80 transition-colors">
-          <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Tipi di Asset</span>
+          <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Asset Types</span>
           <ChevronDown :size="18" class="text-brand-textMuted transition-transform duration-200"
             :class="assetTypesOpen ? 'rotate-180' : ''" />
         </button>
 
         <div v-show="assetTypesOpen" class="px-4 pb-4 pt-4 border-t border-white/5 flex flex-col gap-3">
           <div class="flex flex-col sm:flex-row gap-2">
-            <input v-model="newAssetType.code" placeholder="Codice (es. BOND)"
+            <input v-model="newAssetType.code" placeholder="Code (e.g. BOND)"
               class="flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40 uppercase" />
-            <input v-model="newAssetType.label" placeholder="Nome (es. Obbligazione)"
+            <input v-model="newAssetType.label" placeholder="Name (e.g. Bond)"
               class="flex-1 bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40" />
             <button @click="addAssetType"
               class="flex items-center justify-center gap-1 px-4 py-2 rounded-md bg-brand-primary text-white text-sm font-semibold hover:bg-brand-secondary transition-colors">
-              <Plus :size="16" /> Aggiungi
+              <Plus :size="16" /> Add
             </button>
           </div>
 
@@ -497,7 +497,7 @@ onMounted(loadData)
             <div v-for="item in assetTypes" :key="item.code"
               class="flex flex-wrap items-center gap-2 bg-brand-background rounded-md px-3 py-2 border border-white/5">
               <span class="text-brand-textMuted text-xs font-bold uppercase shrink-0">{{ item.code }}</span>
-              <input v-model="item.label" @blur="renameAssetType(item)" placeholder="Nome visualizzato"
+              <input v-model="item.label" @blur="renameAssetType(item)" placeholder="Display name"
                 class="w-full bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-1 px-2 text-brand-textMain text-sm outline-none transition-all" />
             </div>
           </div>
@@ -511,25 +511,25 @@ onMounted(loadData)
     <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="iconEditor = null"></div>
     <div class="relative w-full sm:max-w-md bg-brand-surface rounded-t-[24px] sm:rounded-app-sm border border-white/10 p-6 flex flex-col gap-4 shadow-app">
       <div class="flex items-center justify-between">
-        <h3 class="text-brand-textMain font-bold text-sm">Icona Asset</h3>
+        <h3 class="text-brand-textMain font-bold text-sm">Asset Icon</h3>
         <button @click="iconEditor = null" class="text-brand-textMuted hover:text-brand-textMain">✕</button>
       </div>
       <div class="flex items-center gap-3">
-        <img v-if="iconEditorValue" :src="iconEditorValue" alt="anteprima"
+        <img v-if="iconEditorValue" :src="iconEditorValue" alt="preview"
           class="w-12 h-12 rounded-full object-cover bg-brand-background p-0.5" />
         <span v-else class="w-12 h-12 rounded-full bg-brand-background flex items-center justify-center text-brand-primary text-sm font-bold">{{ (iconEditor.name || '?').charAt(0) }}</span>
         <span class="text-brand-textMuted text-sm">{{ iconEditor.name }}</span>
       </div>
-      <textarea v-model="iconEditorValue" rows="4" placeholder="Incolla qui il Base64 dell'icona"
+      <textarea v-model="iconEditorValue" rows="4" placeholder="Paste the icon Base64 here"
         class="w-full bg-brand-background border border-white/10 rounded-md py-2 px-3 text-brand-textMain text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none placeholder-brand-textMuted/40 resize-y" />
       <div class="flex gap-2 justify-end">
         <button @click="iconEditor = null"
           class="px-4 py-2 rounded-md bg-brand-surface text-brand-textMuted text-sm font-semibold border border-white/10 hover:text-brand-textMain transition-colors">
-          Annulla
+          Cancel
         </button>
         <button @click="saveIcon"
           class="px-4 py-2 rounded-md bg-brand-primary text-white text-sm font-semibold hover:bg-brand-secondary transition-colors">
-          Salva
+          Save
         </button>
       </div>
     </div>

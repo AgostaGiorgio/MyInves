@@ -12,13 +12,13 @@ PERIOD_MONTHS = {
 }
 
 class Asset(BaseModel):
-    id: Optional[UUID] = Field(None, description="L'ID univoco nel database")
-    name: str = Field(..., description="Nome dell'asset, es. 'Conto Intesa', 'Bitcoin', 'VWCE'")
-    asset_type: str = Field(..., description="La categoria dell'investimento (codice in asset_types)")
-    currency: str = Field(..., description="La valuta di base o l'unità di misura (codice in currencies)")
+    id: Optional[UUID] = Field(None, description="The unique ID in the database")
+    name: str = Field(..., description="Asset name, e.g. 'Intesa Account', 'Bitcoin', 'VWCE'")
+    asset_type: str = Field(..., description="The investment category (code in asset_types)")
+    currency: str = Field(..., description="The base currency or unit of measure (code in currencies)")
     icon_base64: Optional[str] = Field(
         default=None, 
-        description="L'icona dell'asset codificata in Base64 (es. data:image/png;base64,...)"
+        description="The asset icon encoded in Base64 (e.g. data:image/png;base64,...)"
     )
     
     def to_dict(self) -> dict:
@@ -30,15 +30,15 @@ class Asset(BaseModel):
         }
         
 class AssetIcon(BaseModel):
-    id: UUID = Field(..., description="L'ID univoco nel database")
+    id: UUID = Field(..., description="The unique ID in the database")
     icon_base64: Optional[str] = Field(
         default=None, 
-        description="L'icona dell'asset codificata in Base64 (es. data:image/png;base64,...)"
+        description="The asset icon encoded in Base64 (e.g. data:image/png;base64,...)"
     )
 
 class AssetWithPrice(Asset):
-    price: Decimal = Field(..., description="Il prezzo attuale dell'asset in valuta di base")
-    price_date: datetime = Field(..., description="La data dell'ultimo prezzo registrato")
+    price: Decimal = Field(..., description="The current price of the asset in its base currency")
+    price_date: datetime = Field(..., description="The date of the last recorded price")
     
 class PortfolioItemView(BaseModel):
     id: UUID
@@ -46,13 +46,13 @@ class PortfolioItemView(BaseModel):
     asset_type: str
     asset_label: str
     currency: str
-    reading_date: Optional[datetime] = Field(None, description="Data dell'ultima lettura inserita")
-    quantity: Decimal = Field(..., description="Quantità dell'asset posseduta")
-    total_value_eur: Decimal = Field(..., description="Valore totale convertito in Euro")
+    reading_date: Optional[datetime] = Field(None, description="Date of the last inserted reading")
+    quantity: Decimal = Field(..., description="Quantity of the asset held")
+    total_value_eur: Decimal = Field(..., description="Total value converted to Euros")
     
 class HistoryItemView(BaseModel):
-    record_date: datetime = Field(..., description="Data della lettura")
-    total_value_eur: Decimal = Field(..., description="Valore totale convertito in Euro")
+    record_date: datetime = Field(..., description="Reading date")
+    total_value_eur: Decimal = Field(..., description="Total value converted to Euros")
     
 class AssetHistoryItemView(BaseModel):
     asset_name: str

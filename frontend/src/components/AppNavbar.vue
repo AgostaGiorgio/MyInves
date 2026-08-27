@@ -6,7 +6,7 @@ const route = useRoute()
 
 const items = [
   { to: '/', label: 'Dashboard', icon: Home },
-  { to: '/statistics', label: 'Statistiche', icon: BarChart3 },
+  { to: '/statistics', label: 'Statistics', icon: BarChart3 },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 </script>
