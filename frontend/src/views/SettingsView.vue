@@ -307,7 +307,7 @@ onMounted(loadData)
       <section class="w-full bg-brand-surface rounded-app-sm border border-white/5 overflow-hidden">
         <button @click="toggleAssets"
           class="w-full flex items-center justify-between p-4 hover:bg-brand-surface/80 transition-colors">
-          <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Asset</span>
+          <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Assets</span>
           <ChevronDown :size="18" class="text-brand-textMuted transition-transform duration-200"
             :class="assetsOpen ? 'rotate-180' : ''" />
         </button>
