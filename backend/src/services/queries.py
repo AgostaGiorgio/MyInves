@@ -64,6 +64,7 @@ SELECT
     a.id, 
     a.name, 
     a.asset_type, 
+    at.label AS asset_label,
     a.currency, 
     COALESCE(lread.record_date, CURRENT_DATE) AS reading_date,
     COALESCE(ROUND(lread.quantity, 2), 0) AS quantity,
@@ -77,6 +78,7 @@ SELECT
     )::TEXT AS total_value_eur
     
 FROM assets a
+LEFT JOIN asset_types at ON a.asset_type = at.code
 LEFT JOIN LatestReadings lread ON a.id = lread.asset_id
 LEFT JOIN LatestPrices lp ON a.id = lp.asset_id
 LEFT JOIN LatestRates lr ON a.currency = lr.currency

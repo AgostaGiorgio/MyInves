@@ -67,6 +67,7 @@ const loadDashboardData = async () => {
         id: item.id,
         name: item.name,
         type: item.asset_type,
+        label: item.asset_label,
         value: itemValue,
         quantity: parseFloat(item.quantity),
         iconUrl: null 

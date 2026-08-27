@@ -44,6 +44,7 @@ class PortfolioItemView(BaseModel):
     id: UUID
     name: str
     asset_type: str
+    asset_label: str
     currency: str
     reading_date: Optional[datetime] = Field(None, description="Data dell'ultima lettura inserita")
     quantity: Decimal = Field(..., description="Quantità dell'asset posseduta")
