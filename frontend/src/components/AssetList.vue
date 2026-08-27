@@ -1,4 +1,7 @@
 <script setup>
+    import { useSensitiveVisibility, maskAmount } from '../composables/useSensitiveVisibility'
+    const { isSensitiveHidden } = useSensitiveVisibility()
+
     defineProps({
     assets: {
         type: Array,
@@ -33,7 +36,8 @@
         </div>
         <div class="text-right shrink-0">
           <span class="text-brand-textMain font-bold text-sm whitespace-nowrap">
-            € {{ asset.value.toLocaleString('it-IT', { minimumFractionDigits: 2 }) }}
+            <span v-if="isSensitiveHidden">{{ maskAmount() }}</span>
+            <span v-else>€ {{ asset.value.toLocaleString('it-IT', { minimumFractionDigits: 2 }) }}</span>
           </span>
         </div>
        

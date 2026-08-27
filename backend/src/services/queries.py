@@ -2,8 +2,8 @@ from sqlalchemy import text, TextClause
 from src.db.models.asset import Period, PERIOD_MONTHS
 
 NEW_ASSET = text("""
-INSERT INTO assets (name, asset_type, currency, icon_base64)
-VALUES (:name, :asset_type, :currency, :icon_base64)
+INSERT INTO assets (name, asset_type, currency, icon_base64, include_in_stats)
+VALUES (:name, :asset_type, :currency, :icon_base64, :include_in_stats)
 RETURNING id
 """)
 
@@ -12,7 +12,8 @@ UPDATE assets
 SET name = :name,
     asset_type = :asset_type,
     currency = :currency,
-    icon_base64 = :icon_base64
+    icon_base64 = :icon_base64,
+    include_in_stats = :include_in_stats
 WHERE id = :id
 """)
 
@@ -94,6 +95,7 @@ SELECT
     a.asset_type, 
     a.currency,
     a.icon_base64,
+    a.include_in_stats,
     COALESCE(lp.price, 1) AS price,
     COALESCE(lp.record_date, CURRENT_DATE) AS price_date
 FROM assets a
@@ -194,6 +196,23 @@ LEFT JOIN assets a
     ON a.id = ah.asset_id
 WHERE ah.record_date >= date_trunc('month', CURRENT_DATE) - INTERVAL '1 year'
 ORDER BY a.name, ah.record_date;
+""")
+
+GET_ALL_ASSETS_HISTORY = text("""
+SELECT
+    a.name,
+    ah.record_date,
+    ah.total_value_eur
+FROM assets_history ah
+LEFT JOIN assets a
+    ON a.id = ah.asset_id
+ORDER BY a.name, ah.record_date;
+""")
+
+GET_ALL_PORTFOLIO_HISTORY = text("""
+SELECT record_date, total_value_eur
+FROM portfolio_history
+ORDER BY record_date;
 """)
 
 def get_portfolio_history_query(period: Period) -> tuple[TextClause, dict]:
