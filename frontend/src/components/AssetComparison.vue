@@ -4,6 +4,9 @@ import { Line } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip } from 'chart.js'
 
 import { api } from '../services/api'
+import { useSensitiveVisibility } from '../composables/useSensitiveVisibility'
+
+const { isSensitiveHidden } = useSensitiveVisibility()
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip)
 
@@ -18,6 +21,11 @@ const comparisonColors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4']
 
 const rawHistoryData = ref([])
 const isLoading = ref(true)
+const chartEl = ref(null)
+
+watch(isSensitiveHidden, () => {
+  if (chartEl.value && chartEl.value.chart) chartEl.value.chart.update()
+})
 
 const selectedAssetIds = ref([])
 
@@ -83,7 +91,7 @@ const comparisonChartData = computed(() => {
   }
 })
 
-const chartOptions = {
+const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: { legend: { display: false }, tooltip: { enabled: false } },
@@ -97,11 +105,14 @@ const chartOptions = {
         color: '#94a3b8',
         font: { size: 10 },
         maxTicksLimit: 5,
-        callback: function(value) { return '€' + (value / 1000).toFixed(0) + 'k' }
+        callback: function(value) {
+          if (isSensitiveHidden.value) return '••••'
+          return '€' + (value / 1000).toFixed(0) + 'k'
+        }
       }
     }
   }
-}
+}))
 </script>
 
 <template>
@@ -128,7 +139,7 @@ const chartOptions = {
     </div>
 
     <div class="w-full h-48 bg-brand-surface/30 rounded-app-sm p-2 border border-white/5 relative">
-      <Line v-if="selectedAssetIds.length > 0 && !isLoading" :data="comparisonChartData" :options="chartOptions" />
+      <Line ref="chartEl" v-if="selectedAssetIds.length > 0 && !isLoading" :data="comparisonChartData" :options="chartOptions" />
       
       <div v-else-if="isLoading" class="absolute inset-0 flex items-center justify-center text-brand-textMuted text-xs font-medium">
         Loading history...
