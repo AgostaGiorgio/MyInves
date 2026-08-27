@@ -43,6 +43,23 @@ class PortfolioRepository:
         return None
     
     @classmethod
+    async def update_asset(cls, asset_data: Asset) -> Asset | None:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    params = {**asset_data.to_dict(), "id": str(asset_data.id)}
+                    result = await session.execute(UPDATE_ASSET, params)
+                    if result.rowcount == 0:
+                        logger.warning(f"Asset '{asset_data.id}' not found.")
+                        return None
+                    logger.debug(f"Asset '{asset_data.name}' successfully updated.")
+                    return asset_data
+            except Exception as e:
+                logger.error(f"Error updating asset '{asset_data.name}': {e}")
+                return None
+        return None
+
+    @classmethod
     async def get_assets(cls) -> list[AssetWithPrice]:
         async with AsyncSessionLocal() as session:
             try:

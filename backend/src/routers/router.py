@@ -34,6 +34,15 @@ async def create_asset(asset: Asset, asset_service: PortfolioService = Depends(P
         raise HTTPException(status_code=400, detail="Failed to create asset.")
     return new_asset
 
+@api_router.patch("/assets/{id}", response_model=Asset, status_code=200)
+@inject
+async def update_asset(id: UUID, asset: Asset, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> Asset:
+    asset.id = id
+    updated: Asset | None = await asset_service.update_asset(asset)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Asset not found.")
+    return updated
+
 @api_router.get("/assets/history", response_model=list[AssetHistoryItemView], status_code=200)
 @inject
 async def get_asset_history(asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[AssetHistoryItemView]:

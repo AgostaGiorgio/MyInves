@@ -18,6 +18,10 @@ class PortfolioService:
     async def add_new_asset(self, asset_data: Asset) -> Asset:
         logger.debug(f"Adding new asset: {asset_data.name}..")
         return await PortfolioRepository.create_asset(asset_data)
+
+    async def update_asset(self, asset_data: Asset) -> Asset:
+        logger.debug(f"Updating asset: {asset_data.name}..")
+        return await PortfolioRepository.update_asset(asset_data)
     
     async def get_assets(self) -> list[AssetWithPrice]:
         logger.debug("Fetching assets...")

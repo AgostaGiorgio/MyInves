@@ -39,30 +39,16 @@ const loadDashboardData = async () => {
         name: asset.name,
         value: parseFloat(asset.price),
         date: new Date(asset.price_date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
-        iconUrl: null 
+        iconUrl: asset.icon_base64 || null 
       }))
 
     marketData.value = [...formattedAssets, ...formattedRates]
-
-    formattedAssets.forEach(async (item) => {
-      try {
-        const iconData = await api.getAssetIcon(item.id)
-        if (iconData && iconData.icon_base64) {
-          const targetIndex = marketData.value.findIndex(m => m.id === item.id)
-          if (targetIndex !== -1) {
-            marketData.value[targetIndex].iconUrl = iconData.icon_base64
-          }
-        }
-      } catch (err) {
-        console.warn(`Nessuna icona trovata per ${item.name}`)
-      }
-    })
 
     let calculatedTotal = 0
     portfolioAssets.value = rawPortfolio.map(item => {
       const itemValue = parseFloat(item.total_value_eur)
       calculatedTotal += itemValue
-      
+
       return {
         id: item.id,
         name: item.name,
@@ -70,7 +56,7 @@ const loadDashboardData = async () => {
         label: item.asset_label,
         value: itemValue,
         quantity: parseFloat(item.quantity),
-        iconUrl: null 
+        iconUrl: item.icon_base64 || null 
       }
     })
 
@@ -80,12 +66,9 @@ const loadDashboardData = async () => {
 
     rawAssets.forEach(async (rawAsset) => {
       try {
-        const iconData = await api.getAssetIcon(rawAsset.id)
-        if (iconData && iconData.icon_base64) {
-          const tickerTarget = marketData.value.find(m => m.name === rawAsset.name)
-          if (tickerTarget) tickerTarget.iconUrl = iconData.icon_base64
+        if (rawAsset.name && rawAsset.icon_base64) {
           const portfolioTarget = portfolioAssets.value.find(p => p.name === rawAsset.name)
-          if (portfolioTarget) portfolioTarget.iconUrl = iconData.icon_base64
+          if (portfolioTarget) portfolioTarget.iconUrl = rawAsset.icon_base64
         }
       } catch (err) {
         console.warn(`Nessuna icona trovata per ${rawAsset.name}`)

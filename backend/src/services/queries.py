@@ -7,6 +7,15 @@ VALUES (:name, :asset_type, :currency, :icon_base64)
 RETURNING id
 """)
 
+UPDATE_ASSET = text("""
+UPDATE assets
+SET name = :name,
+    asset_type = :asset_type,
+    currency = :currency,
+    icon_base64 = :icon_base64
+WHERE id = :id
+""")
+
 GET_ASSET_ICON = text("""
 SELECT id, icon_base64
 FROM assets
@@ -34,6 +43,7 @@ SELECT
     a.name, 
     a.asset_type, 
     a.currency,
+    a.icon_base64,
     COALESCE(lp.price, 1) AS price,
     COALESCE(lp.record_date, CURRENT_DATE) AS price_date
 FROM assets a

@@ -16,6 +16,16 @@ export const api = {
     return response.data
   },
 
+  async createAsset(payload) {
+    const response = await apiClient.post('/api/v1/assets', payload)
+    return response.data
+  },
+
+  async updateAsset(id, payload) {
+    const response = await apiClient.patch(`/api/v1/assets/${id}`, payload)
+    return response.data
+  },
+
   async getAssetIcon(assetId) {
     const response = await apiClient.get(`/api/v1/assets/${assetId}/icon`)
     return response.data
