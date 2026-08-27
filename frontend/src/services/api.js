@@ -46,5 +46,35 @@ export const api = {
   async addReadings(readingsArray) {
     const response = await apiClient.post('/api/v1/readings', readingsArray)
     return response.data
+  },
+
+  async getCurrencies() {
+    const response = await apiClient.get('/api/v1/currencies')
+    return response.data
+  },
+
+  async getAssetTypes() {
+    const response = await apiClient.get('/api/v1/asset-types')
+    return response.data
+  },
+
+  async createCurrency(payload) {
+    const response = await apiClient.post('/api/v1/currencies', payload)
+    return response.data
+  },
+
+  async createAssetType(payload) {
+    const response = await apiClient.post('/api/v1/asset-types', payload)
+    return response.data
+  },
+
+  async renameCurrency(code, label) {
+    const response = await apiClient.patch(`/api/v1/currencies/${code}`, { label })
+    return response.data
+  },
+
+  async renameAssetType(code, label) {
+    const response = await apiClient.patch(`/api/v1/asset-types/${code}`, { label })
+    return response.data
   }
 }

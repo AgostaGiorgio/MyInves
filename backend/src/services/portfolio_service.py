@@ -60,4 +60,20 @@ class PortfolioService:
     async def add_asset_type(self, code: str, label: str) -> bool:
         logger.debug(f"Adding new asset type {code}..")
         return await PortfolioRepository.add_asset_type(code, label)
+
+    async def get_currencies(self) -> list:
+        logger.debug("Fetching currencies...")
+        return await PortfolioRepository.get_currencies()
+
+    async def get_asset_types(self) -> list:
+        logger.debug("Fetching asset types...")
+        return await PortfolioRepository.get_asset_types()
+
+    async def rename_currency(self, code: str, label: str) -> bool:
+        logger.debug(f"Renaming currency {code}..")
+        return await PortfolioRepository.rename_currency(code, label)
+
+    async def rename_asset_type(self, code: str, label: str) -> bool:
+        logger.debug(f"Renaming asset type {code}..")
+        return await PortfolioRepository.rename_asset_type(code, label)
         

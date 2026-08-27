@@ -6,7 +6,7 @@ from src.services.portfolio_service import PortfolioService
 from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, HistoryItemView, Period, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
-from src.db.models.lookup import CurrencyCreate, AssetTypeCreate
+from src.db.models.lookup import Currency, AssetType, CurrencyCreate, AssetTypeCreate, CurrencyLabelUpdate, AssetTypeLabelUpdate
 
 
 api_router = APIRouter()
@@ -72,3 +72,29 @@ async def create_asset_type(asset_type: AssetTypeCreate, asset_service: Portfoli
     if not created:
         raise HTTPException(status_code=400, detail="Failed to create asset type (maybe it already exists).")
     return asset_type
+
+@api_router.get("/currencies", response_model=list[Currency], status_code=200)
+@inject
+async def get_currencies(asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[Currency]:
+    return await asset_service.get_currencies()
+
+@api_router.get("/asset-types", response_model=list[AssetType], status_code=200)
+@inject
+async def get_asset_types(asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[AssetType]:
+    return await asset_service.get_asset_types()
+
+@api_router.patch("/currencies/{code}", response_model=Currency, status_code=200)
+@inject
+async def rename_currency(code: str, update: CurrencyLabelUpdate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> Currency:
+    renamed: bool = await asset_service.rename_currency(code=code, label=update.label)
+    if not renamed:
+        raise HTTPException(status_code=404, detail="Currency not found.")
+    return Currency(code=code, label=update.label)
+
+@api_router.patch("/asset-types/{code}", response_model=AssetType, status_code=200)
+@inject
+async def rename_asset_type(code: str, update: AssetTypeLabelUpdate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> AssetType:
+    renamed: bool = await asset_service.rename_asset_type(code=code, label=update.label)
+    if not renamed:
+        raise HTTPException(status_code=404, detail="Asset type not found.")
+    return AssetType(code=code, label=update.label)

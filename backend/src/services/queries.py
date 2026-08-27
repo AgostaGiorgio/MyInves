@@ -98,6 +98,30 @@ INSERT INTO asset_types (code, label)
 VALUES (:code, :label)
 """)
 
+GET_CURRENCIES = text("""
+SELECT code, label
+FROM currencies
+ORDER BY code
+""")
+
+GET_ASSET_TYPES = text("""
+SELECT code, label
+FROM asset_types
+ORDER BY code
+""")
+
+UPDATE_CURRENCY_LABEL = text("""
+UPDATE currencies
+SET label = :label
+WHERE code = :code
+""")
+
+UPDATE_ASSET_TYPE_LABEL = text("""
+UPDATE asset_types
+SET label = :label
+WHERE code = :code
+""")
+
 ASSETS_HISTORY = text("""
 SELECT
     a.name,

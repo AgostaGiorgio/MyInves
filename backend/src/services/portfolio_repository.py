@@ -5,6 +5,7 @@ from datetime import datetime
 from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, Period, HistoryItemView, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
+from src.db.models.lookup import Currency, AssetType
 from src.services.queries import *
 
 logger = logging.getLogger(__name__)
@@ -181,5 +182,61 @@ class PortfolioRepository:
                     return True
             except Exception as e:
                 logger.error(f"Error creating asset type '{code}': {e}")
+                return False
+        return False
+
+    @classmethod
+    async def get_currencies(cls) -> list[Currency]:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_CURRENCIES)
+                rows = result.mappings().all()
+                return [Currency(**row) for row in rows]
+            except Exception as e:
+                logger.error(f"Error fetching currencies: {e}")
+                return []
+        return []
+
+    @classmethod
+    async def get_asset_types(cls) -> list[AssetType]:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_ASSET_TYPES)
+                rows = result.mappings().all()
+                return [AssetType(**row) for row in rows]
+            except Exception as e:
+                logger.error(f"Error fetching asset types: {e}")
+                return []
+        return []
+
+    @classmethod
+    async def rename_currency(cls, code: str, label: str) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(UPDATE_CURRENCY_LABEL, {"code": code, "label": label})
+                    if result.rowcount == 0:
+                        logger.warning(f"Currency '{code}' not found.")
+                        return False
+                    logger.debug(f"Currency '{code}' successfully renamed.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error renaming currency '{code}': {e}")
+                return False
+        return False
+
+    @classmethod
+    async def rename_asset_type(cls, code: str, label: str) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(UPDATE_ASSET_TYPE_LABEL, {"code": code, "label": label})
+                    if result.rowcount == 0:
+                        logger.warning(f"Asset type '{code}' not found.")
+                        return False
+                    logger.debug(f"Asset type '{code}' successfully renamed.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error renaming asset type '{code}': {e}")
                 return False
         return False
