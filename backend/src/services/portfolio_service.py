@@ -4,6 +4,7 @@ from src.services.portfolio_repository import PortfolioRepository
 from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, HistoryItemView, Period, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
+from src.db.models.price import AssetPrice, AssetPriceCreate
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,22 @@ class PortfolioService:
         assets = await PortfolioRepository.get_assets()
         logger.debug(f"Retrieved {len(assets)} assets.")
         return assets
+
+    async def get_asset_prices(self, asset_id: UUID) -> list[AssetPrice]:
+        logger.debug(f"Fetching prices for asset {asset_id}...")
+        return await PortfolioRepository.get_asset_prices(asset_id)
+
+    async def add_asset_price(self, asset_id: UUID, data: AssetPriceCreate) -> AssetPrice:
+        logger.debug(f"Adding price for asset {asset_id}...")
+        return await PortfolioRepository.add_asset_price(asset_id, data.record_date, data.price)
+
+    async def update_asset_price(self, price_id: UUID, data: AssetPriceCreate) -> bool:
+        logger.debug(f"Updating price {price_id}...")
+        return await PortfolioRepository.update_asset_price(price_id, data.record_date, data.price)
+
+    async def delete_asset_price(self, price_id: UUID) -> bool:
+        logger.debug(f"Deleting price {price_id}...")
+        return await PortfolioRepository.delete_asset_price(price_id)
     
     async def get_asset_icon(self, id: UUID) -> AssetIcon:
         logger.debug("Fetching asset icon...")

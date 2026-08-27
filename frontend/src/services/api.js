@@ -26,6 +26,26 @@ export const api = {
     return response.data
   },
 
+  async getAssetPrices(assetId) {
+    const response = await apiClient.get(`/api/v1/assets/${assetId}/prices`)
+    return response.data
+  },
+
+  async addAssetPrice(assetId, payload) {
+    const response = await apiClient.post(`/api/v1/assets/${assetId}/prices`, payload)
+    return response.data
+  },
+
+  async updateAssetPrice(priceId, payload) {
+    const response = await apiClient.patch(`/api/v1/prices/${priceId}`, payload)
+    return response.data
+  },
+
+  async deleteAssetPrice(priceId) {
+    const response = await apiClient.delete(`/api/v1/prices/${priceId}`)
+    return response.data
+  },
+
   async getAssetIcon(assetId) {
     const response = await apiClient.get(`/api/v1/assets/${assetId}/icon`)
     return response.data

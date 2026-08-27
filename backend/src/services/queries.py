@@ -16,6 +16,31 @@ SET name = :name,
 WHERE id = :id
 """)
 
+GET_ASSET_PRICES = text("""
+SELECT id, asset_id, record_date, price
+FROM asset_prices
+WHERE asset_id = :asset_id
+ORDER BY record_date DESC
+""")
+
+NEW_ASSET_PRICE = text("""
+INSERT INTO asset_prices (asset_id, record_date, price)
+VALUES (:asset_id, :record_date, :price)
+RETURNING id
+""")
+
+UPDATE_ASSET_PRICE = text("""
+UPDATE asset_prices
+SET record_date = :record_date,
+    price = :price
+WHERE id = :id
+""")
+
+DELETE_ASSET_PRICE = text("""
+DELETE FROM asset_prices
+WHERE id = :id
+""")
+
 GET_ASSET_ICON = text("""
 SELECT id, icon_base64
 FROM assets

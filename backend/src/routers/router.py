@@ -7,6 +7,7 @@ from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetI
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
 from src.db.models.lookup import Currency, AssetType, CurrencyCreate, AssetTypeCreate, CurrencyLabelUpdate, AssetTypeLabelUpdate
+from src.db.models.price import AssetPrice, AssetPriceCreate
 
 
 api_router = APIRouter()
@@ -42,6 +43,34 @@ async def update_asset(id: UUID, asset: Asset, asset_service: PortfolioService =
     if not updated:
         raise HTTPException(status_code=404, detail="Asset not found.")
     return updated
+
+@api_router.get("/assets/{id}/prices", response_model=list[AssetPrice], status_code=200)
+@inject
+async def get_asset_prices(id: UUID, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[AssetPrice]:
+    return await asset_service.get_asset_prices(id)
+
+@api_router.post("/assets/{id}/prices", response_model=AssetPrice, status_code=201)
+@inject
+async def add_asset_price(id: UUID, price: AssetPriceCreate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> AssetPrice:
+    created: AssetPrice | None = await asset_service.add_asset_price(id, price)
+    if not created:
+        raise HTTPException(status_code=400, detail="Failed to add price.")
+    return created
+
+@api_router.patch("/prices/{price_id}", response_model=AssetPriceCreate, status_code=200)
+@inject
+async def update_asset_price(price_id: UUID, price: AssetPriceCreate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> AssetPriceCreate:
+    updated: bool = await asset_service.update_asset_price(price_id, price)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Price not found.")
+    return price
+
+@api_router.delete("/prices/{price_id}", status_code=204)
+@inject
+async def delete_asset_price(price_id: UUID, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> None:
+    deleted: bool = await asset_service.delete_asset_price(price_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Price not found.")
 
 @api_router.get("/assets/history", response_model=list[AssetHistoryItemView], status_code=200)
 @inject

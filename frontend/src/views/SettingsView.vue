@@ -24,6 +24,14 @@ const showMessage = (text, error = false) => {
   setTimeout(() => { message.value = '' }, 3000)
 }
 
+const toLocalInput = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 const loadData = async () => {
   loading.value = true
   try {
@@ -45,6 +53,9 @@ const loadAssets = async () => {
     assets.value = (await api.getAssets()).map(item => ({
       ...item,
       _original: { name: item.name, asset_type: item.asset_type, currency: item.currency, icon_base64: item.icon_base64 || '' },
+      pricesOpen: false,
+      prices: [],
+      newPrice: { record_date: '', price: '' },
     }))
   } catch (e) {
     showMessage('Errore nel caricamento degli asset.', true)
@@ -133,6 +144,66 @@ const saveIcon = async () => {
   item.icon_base64 = iconEditorValue.value
   iconEditor.value = null
   await updateAsset(item)
+}
+
+const decoratePrices = (rows) => rows.map(p => ({
+  ...p,
+  price: String(p.price),
+  _localDate: toLocalInput(p.record_date),
+  _original: { record_date: p.record_date, price: String(p.price) },
+}))
+
+const reloadPrices = async (item) => {
+  item.prices = decoratePrices(await api.getAssetPrices(item.id))
+}
+
+const togglePrices = async (item) => {
+  item.pricesOpen = !item.pricesOpen
+  if (item.pricesOpen && item.prices.length === 0) {
+    await reloadPrices(item)
+  }
+}
+
+const addPrice = async (item) => {
+  const { record_date, price } = item.newPrice
+  if (!record_date || price === '') { showMessage('Inserisci data e prezzo.', true); return }
+  try {
+    await api.addAssetPrice(item.id, { record_date, price: parseFloat(price) })
+    item.newPrice = { record_date: '', price: '' }
+    showMessage('Prezzo aggiunto.')
+    await reloadPrices(item)
+  } catch (e) {
+    showMessage('Impossibile aggiungere il prezzo.', true)
+  }
+}
+
+const savePrice = async (item, price) => {
+  const orig = price._original
+  const recordDate = price._localDate ? new Date(price._localDate).toISOString() : orig.record_date
+  if (recordDate === orig.record_date && price.price === orig.price) return
+  try {
+    await api.updateAssetPrice(price.id, {
+      record_date: recordDate,
+      price: parseFloat(price.price),
+    })
+    await reloadPrices(item)
+    showMessage('Prezzo aggiornato.')
+  } catch (e) {
+    price._localDate = toLocalInput(orig.record_date)
+    price.price = orig.price
+    showMessage('Impossibile aggiornare il prezzo.', true)
+  }
+}
+
+const deletePrice = async (item, price) => {
+  if (!confirm(`Eliminare il prezzo del ${new Date(price.record_date).toLocaleDateString('it-IT')}?`)) return
+  try {
+    await api.deleteAssetPrice(price.id)
+    showMessage('Prezzo eliminato.')
+    await reloadPrices(item)
+  } catch (e) {
+    showMessage('Impossibile eliminare il prezzo.', true)
+  }
 }
 
 const renameCurrency = async (item) => {
@@ -225,6 +296,41 @@ onMounted(loadData)
                   class="app-select flex-1 bg-brand-surface border border-white/10 rounded-md py-1 px-2 text-brand-textMain text-sm outline-none">
                   <option v-for="c in currencies" :key="c.code" :value="c.code">{{ c.code }}</option>
                 </select>
+              </div>
+
+              <div class="border-t border-white/5 pt-2">
+                <button @click="togglePrices(item)"
+                  class="w-full flex items-center justify-between py-1 text-brand-textMuted hover:text-brand-primary transition-colors">
+                  <span class="text-xs font-semibold uppercase tracking-widest">Prezzi</span>
+                  <ChevronDown :size="16" class="transition-transform duration-200"
+                    :class="item.pricesOpen ? 'rotate-180' : ''" />
+                </button>
+
+                <div v-show="item.pricesOpen" class="flex flex-col gap-2 pt-2">
+                  <div class="flex flex-col sm:flex-row gap-2">
+                    <input v-model="item.newPrice.record_date" type="datetime-local"
+                      class="flex-1 bg-brand-surface border border-white/10 rounded-md py-1 px-2 text-brand-textMain text-sm outline-none" />
+                    <input v-model="item.newPrice.price" type="number" step="any" placeholder="Prezzo"
+                      class="flex-1 bg-brand-surface border border-white/10 rounded-md py-1 px-2 text-brand-textMain text-sm outline-none placeholder-brand-textMuted/40" />
+                    <button @click="addPrice(item)"
+                      class="flex items-center justify-center gap-1 px-3 py-1 rounded-md bg-brand-primary text-white text-xs font-semibold hover:bg-brand-secondary transition-colors">
+                      <Plus :size="14" /> Aggiungi
+                    </button>
+                  </div>
+
+                  <div class="flex flex-col gap-1.5">
+                    <div v-for="p in item.prices" :key="p.id"
+                      class="flex items-center gap-2 bg-brand-surface/60 rounded-md px-2 py-1.5 border border-white/5">
+                      <input v-model="p._localDate" type="datetime-local" @change="savePrice(item, p)"
+                        class="flex-1 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-0.5 px-1 text-brand-textMain text-xs outline-none transition-all" />
+                      <input v-model="p.price" type="number" step="any" @blur="savePrice(item, p)"
+                        class="w-20 bg-transparent border border-transparent focus:border-white/10 focus:bg-brand-surface rounded-md py-0.5 px-1 text-brand-textMain text-xs text-right outline-none transition-all" />
+                      <button @click="deletePrice(item, p)" title="Elimina"
+                        class="text-brand-textMuted hover:text-red-400 transition-colors shrink-0">✕</button>
+                    </div>
+                    <span v-if="item.prices.length === 0" class="text-brand-textMuted text-xs">Nessun prezzo registrato.</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
