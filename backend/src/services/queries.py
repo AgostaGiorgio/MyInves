@@ -196,6 +196,23 @@ WHERE ah.record_date >= date_trunc('month', CURRENT_DATE) - INTERVAL '1 year'
 ORDER BY a.name, ah.record_date;
 """)
 
+GET_ALL_ASSETS_HISTORY = text("""
+SELECT
+    a.name,
+    ah.record_date,
+    ah.total_value_eur
+FROM assets_history ah
+LEFT JOIN assets a
+    ON a.id = ah.asset_id
+ORDER BY a.name, ah.record_date;
+""")
+
+GET_ALL_PORTFOLIO_HISTORY = text("""
+SELECT record_date, total_value_eur
+FROM portfolio_history
+ORDER BY record_date;
+""")
+
 def get_portfolio_history_query(period: Period) -> tuple[TextClause, dict]:
     if period == "all":
         return text("""

@@ -68,6 +68,11 @@ export const api = {
     return response.data
   },
 
+  async getStatistics() {
+    const response = await apiClient.get('/api/v1/statistics')
+    return response.data
+  },
+
   async getAssetsHistory() {
     const response = await apiClient.get('/api/v1/assets/history')
     return response.data
