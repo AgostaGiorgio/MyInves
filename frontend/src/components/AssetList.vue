@@ -10,32 +10,33 @@
 <template>
   <section class="w-full flex flex-col items-start gap-2">
     <div class="flex items-center">
-      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">I Miei Asset</span>
+      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">My Assets</span>
     </div>
     
     <div class="w-full flex flex-col gap-3">
       <div 
         v-for="asset in assets" 
         :key="asset.id" 
-        class="bg-brand-surface rounded-app-sm p-4 border border-white/5 flex items-center justify-between cursor-pointer hover:bg-brand-surface/80 transition-colors"
+        class="bg-brand-surface rounded-app-sm p-4 border border-white/5 flex items-center justify-between gap-x-4 gap-y-1 flex-wrap cursor-pointer hover:bg-brand-surface/80 transition-colors"
       >
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4 min-w-0 flex-1">
           <div class="w-10 h-10 rounded-full bg-brand-background flex items-center justify-center border border-white/5 overflow-hidden shrink-0 shadow-inner">
-             <img v-if="asset.iconUrl" :src="asset.iconUrl" alt="icona" class="w-full h-full object-cover" />
+             <img v-if="asset.iconUrl" :src="asset.iconUrl" alt="icon" class="w-full h-full object-cover" />
              <span v-else class="text-brand-primary font-bold text-sm">
                {{ asset.name.charAt(0) }}
              </span>
           </div>
-          <div class="flex flex-col">
+          <div class="flex flex-col min-w-0">
             <span class="text-brand-textMain font-semibold text-sm">{{ asset.name }}</span>
-            <span class="text-brand-textMuted text-[10px] uppercase tracking-wider">{{ asset.type.replace('_', ' ') }}</span>
+            <span class="text-brand-textMuted text-[10px] uppercase tracking-wider">{{ asset.label }}</span>
           </div>
         </div>
-        <div class="text-right">
-          <span class="text-brand-textMain font-bold text-sm">
+        <div class="text-right shrink-0">
+          <span class="text-brand-textMain font-bold text-sm whitespace-nowrap">
             € {{ asset.value.toLocaleString('it-IT', { minimumFractionDigits: 2 }) }}
           </span>
         </div>
+       
       </div>
     </div>
   </section>

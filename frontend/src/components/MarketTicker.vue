@@ -8,44 +8,44 @@ const props = defineProps({
   }
 })
 
-// Creiamo dei "riferimenti" (ref) per poter leggere le dimensioni nel DOM (l'HTML)
+// We create "refs" to be able to read dimensions in the DOM (the HTML)
 const containerRef = ref(null)
 const contentRef = ref(null)
 
-// Questa variabile ci dirà se gli elementi escono fuori dallo schermo (true) o no (false)
+// This variable tells us if the items overflow the screen (true) or not (false)
 const isOverflowing = ref(false)
 
-// Funzione che calcola se c'è bisogno dell'animazione
+// Function that calculates whether the animation is needed
 const checkOverflow = async () => {
-  // 1. Resettiamo momentaneamente l'animazione a "false" per misurare un solo blocco di elementi
+  // 1. We temporarily reset the animation to "false" to measure a single block of items
   isOverflowing.value = false
   
-  // 2. Diciamo a Vue: "Aspetta di aver aggiornato la grafica prima di fare i calcoli"
+  // 2. We tell Vue: "Wait to have updated the graphics before doing the calculations"
   await nextTick()
   
-  // 3. Controlliamo le dimensioni
+  // 3. We check the dimensions
   if (containerRef.value && contentRef.value) {
-    // scrollWidth è la larghezza totale degli elementi
-    // clientWidth è la larghezza dello schermo/contenitore
+    // scrollWidth is the total width of the items
+    // clientWidth is the width of the screen/container
     if (contentRef.value.scrollWidth > containerRef.value.clientWidth) {
-      isOverflowing.value = true // Ci sono troppi elementi, attiviamo l'animazione!
+      isOverflowing.value = true // There are too many items, let's activate the animation!
     }
   }
 }
 
-// Appena il componente appare sullo schermo, facciamo il controllo
+// As soon as the component appears on screen, we do the check
 onMounted(() => {
   checkOverflow()
-  // Aggiungiamo un ascoltatore: se l'utente gira il telefono o allarga la finestra, ricalcoliamo!
+  // We add a listener: if the user rotates the phone or resizes the window, we recalculate!
   window.addEventListener('resize', checkOverflow)
 })
 
-// Quando usciamo dalla pagina, puliamo la memoria rimuovendo l'ascoltatore
+// When we leave the page, we clean up memory by removing the listener
 onUnmounted(() => {
   window.removeEventListener('resize', checkOverflow)
 })
 
-// Se il backend ci manda nuovi dati all'improvviso, ricalcoliamo tutto
+// If the backend suddenly sends new data, we recalculate everything
 watch(() => props.items, () => {
   checkOverflow()
 }, { deep: true })
@@ -55,7 +55,7 @@ watch(() => props.items, () => {
   <section class="w-full flex flex-col gap-2">
     
     <div class="flex items-center">
-      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Mercati & Cambi (€)</span>
+      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Markets & Rates (€)</span>
     </div>
 
     <div ref="containerRef" class="overflow-hidden relative flex w-full">
@@ -72,7 +72,7 @@ watch(() => props.items, () => {
             class="flex-none w-32 bg-brand-surface/50 rounded-app-sm p-2.5 border border-white/5 flex flex-col justify-between cursor-pointer"
           >
             <div class="flex items-center justify-between mb-2">
-              <img v-if="item.iconUrl" :src="item.iconUrl" alt="icona" class="w-5 h-5 rounded-full object-cover" />
+              <img v-if="item.iconUrl" :src="item.iconUrl" alt="icon" class="w-5 h-5 rounded-full object-cover" />
               <div v-else class="w-5 h-5 rounded-full bg-brand-primary/20 text-brand-primary flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path>

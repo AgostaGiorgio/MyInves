@@ -5,6 +5,8 @@ from datetime import datetime
 from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, Period, HistoryItemView, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
+from src.db.models.lookup import Currency, AssetType
+from src.db.models.price import AssetPrice, AssetPriceCreate
 from src.services.queries import *
 
 logger = logging.getLogger(__name__)
@@ -25,6 +27,69 @@ class PortfolioRepository:
         return []
 
     @classmethod
+    async def get_all_exchange_rates(cls) -> list[ExchangeRate]:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_ALL_EXCHANGE_RATES)
+                rates = result.mappings().all()
+                logger.debug(f"Fetched {len(rates)} exchange rates from the database.")
+                return [ExchangeRate(**rate) for rate in rates]
+            except Exception as e:
+                logger.error(f"Error fetching exchange rates: {e}")
+                return []
+        return []
+
+    @classmethod
+    async def add_exchange_rate(cls, currency: str, record_date: datetime, rate_to_eur) -> ExchangeRate | None:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(
+                        NEW_EXCHANGE_RATE,
+                        {"currency": currency, "record_date": record_date, "rate_to_eur": str(rate_to_eur)},
+                    )
+                    new_id = result.scalar()
+                    logger.debug(f"Exchange rate for '{currency}' added.")
+                    return ExchangeRate(id=new_id, currency=currency, record_date=record_date, rate_to_eur=rate_to_eur)
+            except Exception as e:
+                logger.error(f"Error adding exchange rate for '{currency}': {e}")
+                return None
+        return None
+
+    @classmethod
+    async def update_exchange_rate(cls, rate_id: UUID, currency: str, record_date: datetime, rate_to_eur) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(
+                        UPDATE_EXCHANGE_RATE,
+                        {"id": str(rate_id), "currency": currency, "record_date": record_date, "rate_to_eur": str(rate_to_eur)},
+                    )
+                    if result.rowcount == 0:
+                        return False
+                    logger.debug(f"Exchange rate '{rate_id}' updated.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error updating exchange rate '{rate_id}': {e}")
+                return False
+        return False
+
+    @classmethod
+    async def delete_exchange_rate(cls, rate_id: UUID) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(DELETE_EXCHANGE_RATE, {"id": str(rate_id)})
+                    if result.rowcount == 0:
+                        return False
+                    logger.debug(f"Exchange rate '{rate_id}' deleted.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error deleting exchange rate '{rate_id}': {e}")
+                return False
+        return False
+
+    @classmethod
     async def create_asset(cls, asset_data: Asset) -> Asset | None:
         async with AsyncSessionLocal() as session:
             try:
@@ -42,6 +107,23 @@ class PortfolioRepository:
         return None
     
     @classmethod
+    async def update_asset(cls, asset_data: Asset) -> Asset | None:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    params = {**asset_data.to_dict(), "id": str(asset_data.id)}
+                    result = await session.execute(UPDATE_ASSET, params)
+                    if result.rowcount == 0:
+                        logger.warning(f"Asset '{asset_data.id}' not found.")
+                        return None
+                    logger.debug(f"Asset '{asset_data.name}' successfully updated.")
+                    return asset_data
+            except Exception as e:
+                logger.error(f"Error updating asset '{asset_data.name}': {e}")
+                return None
+        return None
+
+    @classmethod
     async def get_assets(cls) -> list[AssetWithPrice]:
         async with AsyncSessionLocal() as session:
             try:
@@ -53,6 +135,68 @@ class PortfolioRepository:
                 logger.error(f"Error fetching assets: {e}")
                 return []
         return []
+    
+    @classmethod
+    async def get_asset_prices(cls, asset_id: UUID) -> list[AssetPrice]:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_ASSET_PRICES, {"asset_id": str(asset_id)})
+                rows = result.mappings().all()
+                return [AssetPrice(**row) for row in rows]
+            except Exception as e:
+                logger.error(f"Error fetching prices for asset '{asset_id}': {e}")
+                return []
+        return []
+
+    @classmethod
+    async def add_asset_price(cls, asset_id: UUID, record_date: datetime, price) -> AssetPrice | None:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(
+                        NEW_ASSET_PRICE,
+                        {"asset_id": str(asset_id), "record_date": record_date, "price": str(price)},
+                    )
+                    new_id = result.scalar()
+                    logger.debug(f"Price added for asset '{asset_id}'.")
+                    return AssetPrice(id=new_id, asset_id=asset_id, record_date=record_date, price=price)
+            except Exception as e:
+                logger.error(f"Error adding price for asset '{asset_id}': {e}")
+                return None
+        return None
+
+    @classmethod
+    async def update_asset_price(cls, price_id: UUID, record_date: datetime, price) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(
+                        UPDATE_ASSET_PRICE,
+                        {"id": str(price_id), "record_date": record_date, "price": str(price)},
+                    )
+                    if result.rowcount == 0:
+                        return False
+                    logger.debug(f"Price '{price_id}' updated.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error updating price '{price_id}': {e}")
+                return False
+        return False
+
+    @classmethod
+    async def delete_asset_price(cls, price_id: UUID) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(DELETE_ASSET_PRICE, {"id": str(price_id)})
+                    if result.rowcount == 0:
+                        return False
+                    logger.debug(f"Price '{price_id}' deleted.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error deleting price '{price_id}': {e}")
+                return False
+        return False
     
     @classmethod
     async def get_asset_icon(cls, id: UUID) -> AssetIcon | None:
@@ -157,3 +301,85 @@ class PortfolioRepository:
                 logger.error(f"Error creating new readings '{readings}': {e}")
                 return None
         return None
+
+    @classmethod
+    async def add_currency(cls, code: str, label: str) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    await session.execute(NEW_CURRENCY, {"code": code, "label": label})
+                    logger.debug(f"Currency '{code}' successfully created.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error creating currency '{code}': {e}")
+                return False
+        return False
+
+    @classmethod
+    async def add_asset_type(cls, code: str, label: str) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    await session.execute(NEW_ASSET_TYPE, {"code": code, "label": label})
+                    logger.debug(f"Asset type '{code}' successfully created.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error creating asset type '{code}': {e}")
+                return False
+        return False
+
+    @classmethod
+    async def get_currencies(cls) -> list[Currency]:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_CURRENCIES)
+                rows = result.mappings().all()
+                return [Currency(**row) for row in rows]
+            except Exception as e:
+                logger.error(f"Error fetching currencies: {e}")
+                return []
+        return []
+
+    @classmethod
+    async def get_asset_types(cls) -> list[AssetType]:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_ASSET_TYPES)
+                rows = result.mappings().all()
+                return [AssetType(**row) for row in rows]
+            except Exception as e:
+                logger.error(f"Error fetching asset types: {e}")
+                return []
+        return []
+
+    @classmethod
+    async def rename_currency(cls, code: str, label: str) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(UPDATE_CURRENCY_LABEL, {"code": code, "label": label})
+                    if result.rowcount == 0:
+                        logger.warning(f"Currency '{code}' not found.")
+                        return False
+                    logger.debug(f"Currency '{code}' successfully renamed.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error renaming currency '{code}': {e}")
+                return False
+        return False
+
+    @classmethod
+    async def rename_asset_type(cls, code: str, label: str) -> bool:
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    result = await session.execute(UPDATE_ASSET_TYPE_LABEL, {"code": code, "label": label})
+                    if result.rowcount == 0:
+                        logger.warning(f"Asset type '{code}' not found.")
+                        return False
+                    logger.debug(f"Asset type '{code}' successfully renamed.")
+                    return True
+            except Exception as e:
+                logger.error(f"Error renaming asset type '{code}': {e}")
+                return False
+        return False
