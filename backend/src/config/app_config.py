@@ -15,7 +15,7 @@ class AppConfig(BaseSettings):
     postgresql_port: str 
     postgresql_database: str 
     
-    orbit_api_url: str = None
+    orbit_api_url: str | None = None
     
     @property
     def postgresql_connection_uri(self) -> str:
