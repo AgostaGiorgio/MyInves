@@ -1,8 +1,13 @@
-from pydantic import BaseModel, Field
+import json
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 from decimal import Decimal
 from typing import Optional, Literal
 from uuid import UUID
 from datetime import datetime
+
+from src.db.models.details import parse_details
+from src.db.models.enums import AssetType
 
 Period = Literal["all", "3m", "6m", "12m"]
 PERIOD_MONTHS = {
@@ -10,6 +15,9 @@ PERIOD_MONTHS = {
     "6m": 6,
     "12m": 12,
 }
+
+_ASSET_TYPE_CODES = {t.value for t in AssetType}
+
 
 class Asset(BaseModel):
     id: Optional[UUID] = Field(None, description="The unique ID in the database")
@@ -20,18 +28,44 @@ class Asset(BaseModel):
         default=None, 
         description="The asset icon encoded in Base64 (e.g. data:image/png;base64,...)"
     )
-    include_in_stats: bool = Field(
-        default=False,
-        description="Whether this asset should be included in the statistics calculations"
+    details: dict = Field(
+        default_factory=dict,
+        description="Type-specific metadata (validated per asset_type), e.g. ETF ISIN/ticker",
     )
-    
+
+    @field_validator("asset_type")
+    @classmethod
+    def _validate_asset_type(cls, value: str) -> str:
+        code = value.strip().upper()
+        if code not in _ASSET_TYPE_CODES:
+            allowed = ", ".join(sorted(_ASSET_TYPE_CODES))
+            raise ValueError(f"Unknown asset_type '{value}'. Allowed: {allowed}")
+        return code
+
+    @field_validator("details", mode="before")
+    @classmethod
+    def _coerce_details(cls, value):
+        # Il driver puo' restituire il JSONB come dict oppure come stringa JSON.
+        if value is None:
+            return {}
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode("utf-8")
+        if isinstance(value, str):
+            return json.loads(value) if value.strip() else {}
+        return value
+
+    @model_validator(mode="after")
+    def _normalize_details(self) -> "Asset":
+        self.details = parse_details(self.asset_type, self.details)
+        return self
+
     def to_dict(self) -> dict:
         return {
             "name": self.name,
             "asset_type": self.asset_type,
             "currency": self.currency,
             "icon_base64": self.icon_base64,
-            "include_in_stats": self.include_in_stats
+            "details": json.dumps(self.details, default=str),
         }
         
 class AssetIcon(BaseModel):
@@ -54,6 +88,10 @@ class PortfolioItemView(BaseModel):
     reading_date: Optional[datetime] = Field(None, description="Date of the last inserted reading")
     quantity: Decimal = Field(..., description="Quantity of the asset held")
     total_value_eur: Decimal = Field(..., description="Total value converted to Euros")
+    cost_price: Optional[Decimal] = Field(None, description="Average cost per unit in the asset currency")
+    cost_value_eur: Optional[Decimal] = Field(None, description="Total cost basis converted to Euros")
+    unrealized_pl_eur: Optional[Decimal] = Field(None, description="Unrealized P&L in Euros")
+    unrealized_pl_pct: Optional[Decimal] = Field(None, description="Unrealized P&L percentage")
     
 class HistoryItemView(BaseModel):
     record_date: datetime = Field(..., description="Reading date")

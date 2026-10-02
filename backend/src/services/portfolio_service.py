@@ -1,12 +1,15 @@
 import logging
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from src.services.portfolio_repository import PortfolioRepository
 from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, HistoryItemView, Period, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate, ExchangeRateCreate
 from src.db.models.price import AssetPrice, AssetPriceCreate
-from src.db.models.statistics import StatisticsResponse, SingleMonthChange, BestAssetResult, AssetMonthlyAverage
+from src.db.models.order import AssetOrder, AssetOrderCreate
+from src.db.models.enums import ORDER_TRACKED_CODES
+from src.db.models.market import MarketItemView
+from src.db.models.statistics import StatisticsResponse, SingleMonthChange, BestAssetResult, AssetMonthlyAverage, TypeAllocation
 
 logger = logging.getLogger(__name__)
 
@@ -96,10 +99,6 @@ class PortfolioService:
         logger.debug(f"Adding new currency {code}..")
         return await PortfolioRepository.add_currency(code, label)
 
-    async def add_asset_type(self, code: str, label: str) -> bool:
-        logger.debug(f"Adding new asset type {code}..")
-        return await PortfolioRepository.add_asset_type(code, label)
-
     async def get_currencies(self) -> list:
         logger.debug("Fetching currencies...")
         return await PortfolioRepository.get_currencies()
@@ -112,9 +111,27 @@ class PortfolioService:
         logger.debug(f"Renaming currency {code}..")
         return await PortfolioRepository.rename_currency(code, label)
 
-    async def rename_asset_type(self, code: str, label: str) -> bool:
-        logger.debug(f"Renaming asset type {code}..")
-        return await PortfolioRepository.rename_asset_type(code, label)
+    async def add_order(self, asset_id: UUID, data: AssetOrderCreate) -> AssetOrder | None:
+        logger.debug(f"Registering order for asset {asset_id}...")
+        asset_type = await PortfolioRepository.get_asset_type(asset_id)
+        if asset_type is None:
+            return None
+        if asset_type not in ORDER_TRACKED_CODES:
+            raise ValueError(f"Asset type '{asset_type}' does not support orders.")
+        order_date = data.order_date or datetime.now(timezone.utc)
+        return await PortfolioRepository.create_order(asset_id, data, order_date)
+
+    async def get_asset_orders(self, asset_id: UUID) -> list[AssetOrder]:
+        logger.debug(f"Fetching orders for asset {asset_id}...")
+        return await PortfolioRepository.get_asset_orders(asset_id)
+
+    async def delete_order(self, asset_id: UUID, order_id: UUID) -> bool:
+        logger.debug(f"Deleting order {order_id} for asset {asset_id}...")
+        return await PortfolioRepository.delete_order(asset_id, order_id)
+
+    async def get_market_history(self, points: int = 6) -> list[MarketItemView]:
+        logger.debug(f"Fetching market history (points={points})...")
+        return await PortfolioRepository.get_market_history(points)
 
     @staticmethod
     def _month_label(dt: datetime) -> str:
@@ -138,8 +155,10 @@ class PortfolioService:
         series.append(current_total)
 
         change_vs_prev = None
+        change_vs_prev_eur = None
         if len(series) >= 2:
             change_vs_prev = self._pct(series[-2], series[-1])
+            change_vs_prev_eur = series[-1] - series[-2]
 
         changes = [self._pct(series[i], series[i + 1]) for i in range(len(series) - 1)]
         changes = [c for c in changes if c is not None]
@@ -151,8 +170,7 @@ class PortfolioService:
 
         current_by_name = {a.name: float(a.total_value_eur) for a in portfolio}
         icons_by_name = {a.name: a.icon_base64 for a in assets}
-        include_by_name = {a.name: bool(a.include_in_stats) for a in assets}
-        names = {n for n in (set(assets_history.keys()) | set(current_by_name.keys())) if include_by_name.get(n) is True}
+        names = set(assets_history.keys()) | set(current_by_name.keys())
 
         best_growth_to_date = None
         best_single_month = None
@@ -199,13 +217,59 @@ class PortfolioService:
 
         per_asset_avg_monthly.sort(key=lambda a: a.avg_monthly_pct if a.avg_monthly_pct is not None else 0, reverse=True)
 
+        # Allocazione per tipo di asset
+        name_to_type = {a.name: a.asset_type for a in assets}
+
+        type_monthly: dict[str, list[float]] = {}
+        for item in per_asset_avg_monthly:
+            code = name_to_type.get(item.asset_name)
+            if code is not None and item.avg_monthly_pct is not None:
+                type_monthly.setdefault(code, []).append(float(item.avg_monthly_pct))
+
+        alloc: dict[str, dict] = {}
+        for item in portfolio:
+            entry = alloc.setdefault(item.asset_type, {
+                "label": item.asset_label or item.asset_type,
+                "value": 0.0, "cost": 0.0, "pl": 0.0, "has_cost": False,
+                "pl_pct_sum": 0.0, "pl_pct_n": 0, "count": 0,
+            })
+            entry["value"] += float(item.total_value_eur)
+            entry["count"] += 1
+            if item.cost_value_eur is not None:
+                entry["cost"] += float(item.cost_value_eur)
+            if item.unrealized_pl_eur is not None:
+                entry["pl"] += float(item.unrealized_pl_eur)
+                entry["has_cost"] = True
+            if item.unrealized_pl_pct is not None:
+                entry["pl_pct_sum"] += float(item.unrealized_pl_pct)
+                entry["pl_pct_n"] += 1
+
+        grand_total = sum(e["value"] for e in alloc.values())
+        allocation: list[TypeAllocation] = []
+        for code, entry in alloc.items():
+            monthly = type_monthly.get(code)
+            allocation.append(TypeAllocation(
+                asset_type=code,
+                label=entry["label"],
+                total_value_eur=round(entry["value"], 2),
+                weight_pct=round(entry["value"] / grand_total * 100, 2) if grand_total else 0,
+                asset_count=entry["count"],
+                cost_value_eur=round(entry["cost"], 2) if entry["has_cost"] else None,
+                unrealized_pl_eur=round(entry["pl"], 2) if entry["has_cost"] else None,
+                unrealized_pl_pct=round(entry["pl_pct_sum"] / entry["pl_pct_n"], 2) if entry["pl_pct_n"] else None,
+                avg_monthly_pct=round(sum(monthly) / len(monthly), 2) if monthly else None,
+            ))
+        allocation.sort(key=lambda a: a.total_value_eur, reverse=True)
+
         return StatisticsResponse(
             current_total_eur=round(current_total, 2),
             change_vs_prev_month_pct=round(change_vs_prev, 2) if change_vs_prev is not None else None,
+            change_vs_prev_month_eur=round(change_vs_prev_eur, 2) if change_vs_prev_eur is not None else None,
             avg_monthly_growth_pct=round(avg_monthly, 2) if avg_monthly is not None else None,
             per_asset_avg_monthly=per_asset_avg_monthly,
             best_growth_to_date=best_growth_to_date,
             best_single_month=best_single_month,
             worst_single_month=worst_single_month,
+            allocation=allocation,
         )
         
