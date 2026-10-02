@@ -1,12 +1,16 @@
 import logging
 from src.db.db import AsyncSessionLocal
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
+from decimal import Decimal
 from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, Period, HistoryItemView, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
 from src.db.models.lookup import Currency, AssetType
 from src.db.models.price import AssetPrice, AssetPriceCreate
+from src.db.models.order import AssetOrder, AssetOrderCreate
+from src.db.models.enums import OrderSide
+from src.db.models.market import MarketItemView, MarketPoint
 from src.services.queries import *
 
 logger = logging.getLogger(__name__)
@@ -158,12 +162,178 @@ class PortfolioRepository:
                         {"asset_id": str(asset_id), "record_date": record_date, "price": str(price)},
                     )
                     new_id = result.scalar()
+                    if new_id is None:
+                        logger.warning(
+                            f"Price not added for asset '{asset_id}': not found or type does not support market prices."
+                        )
+                        return None
                     logger.debug(f"Price added for asset '{asset_id}'.")
                     return AssetPrice(id=new_id, asset_id=asset_id, record_date=record_date, price=price)
             except Exception as e:
                 logger.error(f"Error adding price for asset '{asset_id}': {e}")
                 return None
         return None
+
+    @classmethod
+    async def get_asset_type(cls, asset_id: UUID) -> str | None:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_ASSET_TYPE, {"id": str(asset_id)})
+                row = result.scalar()
+                return row
+            except Exception as e:
+                logger.error(f"Error fetching type for asset '{asset_id}': {e}")
+                return None
+        return None
+
+    @classmethod
+    async def get_asset_orders(cls, asset_id: UUID) -> list[AssetOrder]:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_ASSET_ORDERS, {"asset_id": str(asset_id)})
+                rows = result.mappings().all()
+                return [AssetOrder(**row) for row in rows]
+            except Exception as e:
+                logger.error(f"Error fetching orders for asset '{asset_id}': {e}")
+                return []
+        return []
+
+    @classmethod
+    async def create_order(cls, asset_id: UUID, data: AssetOrderCreate, order_date: datetime) -> AssetOrder | None:
+        """Registra un ordine e aggiorna la lettura della posizione con il
+        nuovo costo medio pesato (per un BUY), tutto in una transazione."""
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    prev = (await session.execute(
+                        GET_LATEST_READING, {"asset_id": str(asset_id)}
+                    )).mappings().first()
+
+                    prev_qty = Decimal(prev["quantity"]) if prev else Decimal("0")
+                    prev_cost = (
+                        Decimal(prev["cost_price"]) if prev and prev["cost_price"] is not None else None
+                    )
+
+                    qty = Decimal(data.quantity)
+                    amount = Decimal(data.amount_invested)
+
+                    if data.side == OrderSide.BUY:
+                        new_qty = prev_qty + qty
+                        if prev_qty > 0 and prev_cost is not None:
+                            new_cost = (prev_qty * prev_cost + amount) / new_qty
+                        elif qty > 0:
+                            new_cost = amount / qty
+                        else:
+                            new_cost = prev_cost
+                    else:
+                        new_qty = prev_qty - qty
+                        new_cost = prev_cost
+
+                    if new_cost is not None:
+                        new_cost = new_cost.quantize(Decimal("0.00000001"))
+
+                    params = {
+                        "asset_id": str(asset_id),
+                        "order_date": order_date,
+                        "side": data.side.value,
+                        "quantity": str(qty),
+                        "amount_invested": str(amount),
+                        "fees": str(data.fees),
+                        "note": data.note,
+                    }
+                    result = await session.execute(NEW_ASSET_ORDER, params)
+                    row = result.mappings().one()
+
+                    await session.execute(
+                        NEW_READING_ON_DATE,
+                        {
+                            "asset_id": str(asset_id),
+                            "record_date": row["order_date"],
+                            "quantity": str(new_qty),
+                            "cost_price": str(new_cost) if new_cost is not None else None,
+                        },
+                    )
+
+                    logger.debug(
+                        f"Order registered for asset '{asset_id}': qty={qty} side={data.side.value}, "
+                        f"position {prev_qty} -> {new_qty}, avg cost {new_cost}."
+                    )
+                    return AssetOrder(
+                        id=row["id"],
+                        asset_id=asset_id,
+                        order_date=row["order_date"],
+                        side=data.side,
+                        quantity=qty,
+                        amount_invested=amount,
+                        fees=data.fees,
+                        note=data.note,
+                    )
+            except Exception as e:
+                logger.error(f"Error registering order for asset '{asset_id}': {e}")
+                return None
+        return None
+
+    @classmethod
+    async def delete_order(cls, asset_id: UUID, order_id: UUID) -> bool:
+        """Elimina un ordine e ricalcola la posizione replicando il ledger
+        rimanente a partire dall'ultima lettura manuale."""
+        async with AsyncSessionLocal() as session:
+            try:
+                async with session.begin():
+                    deleted = await session.execute(
+                        DELETE_ASSET_ORDER, {"id": str(order_id), "asset_id": str(asset_id)}
+                    )
+                    if deleted.rowcount == 0:
+                        logger.warning(f"Order '{order_id}' not found for asset '{asset_id}'.")
+                        return False
+
+                    # Base: ultima lettura inserita manualmente.
+                    manual = (await session.execute(
+                        GET_LATEST_MANUAL_READING, {"asset_id": str(asset_id)}
+                    )).mappings().first()
+                    qty = Decimal(manual["quantity"]) if manual else Decimal("0")
+                    cost = Decimal(manual["cost_price"]) if manual and manual["cost_price"] is not None else None
+
+                    # Rigenera la posizione replicando gli ordini rimasti.
+                    await session.execute(DELETE_ORDER_READINGS, {"asset_id": str(asset_id)})
+                    orders = (await session.execute(
+                        GET_ASSET_ORDERS_ASC, {"asset_id": str(asset_id)}
+                    )).mappings().all()
+
+                    for order in orders:
+                        o_qty = Decimal(order["quantity"])
+                        amount = Decimal(order["amount_invested"])
+                        if order["side"] == OrderSide.BUY.value:
+                            new_qty = qty + o_qty
+                            if qty > 0 and cost is not None:
+                                cost = (qty * cost + amount) / new_qty
+                            elif o_qty > 0:
+                                cost = amount / o_qty
+                            qty = new_qty
+                        else:
+                            qty = qty - o_qty
+
+                    if cost is not None:
+                        cost = cost.quantize(Decimal("0.00000001"))
+
+                    await session.execute(
+                        NEW_READING_ON_DATE,
+                        {
+                            "asset_id": str(asset_id),
+                            "record_date": datetime.now(timezone.utc),
+                            "quantity": str(qty),
+                            "cost_price": str(cost) if cost is not None else None,
+                        },
+                    )
+                    logger.debug(
+                        f"Order '{order_id}' deleted for asset '{asset_id}': "
+                        f"replayed {len(orders)} orders -> position {qty}, avg cost {cost}."
+                    )
+                    return True
+            except Exception as e:
+                logger.error(f"Error deleting order '{order_id}' for asset '{asset_id}': {e}")
+                return False
+        return False
 
     @classmethod
     async def update_asset_price(cls, price_id: UUID, record_date: datetime, price) -> bool:
@@ -210,6 +380,40 @@ class PortfolioRepository:
                 logger.error(f"Error fetching assets icon: {e}")
                 return None
         return None
+
+    @classmethod
+    async def get_market_history(cls, points: int) -> list[MarketItemView]:
+        async with AsyncSessionLocal() as session:
+            try:
+                result = await session.execute(GET_MARKET_HISTORY, {"points": points})
+                rows = result.mappings().all()
+            except Exception as e:
+                logger.error(f"Error fetching market history: {e}")
+                return []
+
+        # Raggruppa per item: le righe arrivano per item in ordine cronologico.
+        grouped: dict[tuple, MarketItemView] = {}
+        for row in rows:
+            key = (row["kind"], row["item_id"])
+            item = grouped.get(key)
+            if item is None:
+                item = MarketItemView(
+                    kind=row["kind"],
+                    id=row["item_id"],
+                    name=row["name"],
+                    currency=row["currency"],
+                    icon_base64=row["icon_base64"],
+                )
+                grouped[key] = item
+            item.points.append(MarketPoint(record_date=row["record_date"], value=row["value"]))
+
+        for item in grouped.values():
+            if item.points:
+                item.value = item.points[-1].value
+                item.date = item.points[-1].record_date
+
+        logger.debug(f"Fetched market history for {len(grouped)} items (points={points}).")
+        return list(grouped.values())
     
     @classmethod
     async def get_asset_history(cls) -> list[AssetHistoryItemView]:
@@ -344,19 +548,6 @@ class PortfolioRepository:
         return False
 
     @classmethod
-    async def add_asset_type(cls, code: str, label: str) -> bool:
-        async with AsyncSessionLocal() as session:
-            try:
-                async with session.begin():
-                    await session.execute(NEW_ASSET_TYPE, {"code": code, "label": label})
-                    logger.debug(f"Asset type '{code}' successfully created.")
-                    return True
-            except Exception as e:
-                logger.error(f"Error creating asset type '{code}': {e}")
-                return False
-        return False
-
-    @classmethod
     async def get_currencies(cls) -> list[Currency]:
         async with AsyncSessionLocal() as session:
             try:
@@ -393,21 +584,5 @@ class PortfolioRepository:
                     return True
             except Exception as e:
                 logger.error(f"Error renaming currency '{code}': {e}")
-                return False
-        return False
-
-    @classmethod
-    async def rename_asset_type(cls, code: str, label: str) -> bool:
-        async with AsyncSessionLocal() as session:
-            try:
-                async with session.begin():
-                    result = await session.execute(UPDATE_ASSET_TYPE_LABEL, {"code": code, "label": label})
-                    if result.rowcount == 0:
-                        logger.warning(f"Asset type '{code}' not found.")
-                        return False
-                    logger.debug(f"Asset type '{code}' successfully renamed.")
-                    return True
-            except Exception as e:
-                logger.error(f"Error renaming asset type '{code}': {e}")
                 return False
         return False

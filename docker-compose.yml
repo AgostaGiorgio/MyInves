@@ -1,0 +1,60 @@
+# myInves — full stack with a single command:
+#
+#   docker compose up --build
+#
+# Then open http://localhost:3000 (frontend). The backend runs on :8000.
+# Postgres data lives in a named volume (it survives restarts).
+#
+# Overridable variables:
+#   POSTGRESQL_USER / POSTGRESQL_PASSWORD / POSTGRESQL_DATABASE
+#   FRONTEND_PORT / BACKEND_PORT
+#   VITE_API_BASE_URL   (backend URL as seen by the *browser*, e.g. http://localhost:8000)
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRESQL_USER:-myinves}
+      POSTGRES_PASSWORD: ${POSTGRESQL_PASSWORD:-myinves}
+      POSTGRES_DB: ${POSTGRESQL_DATABASE:-myinves}
+    volumes:
+      - myinves_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRESQL_USER:-myinves} -d ${POSTGRESQL_DATABASE:-myinves}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    image: myinves-backend
+    environment:
+      POSTGRESQL_USER: ${POSTGRESQL_USER:-myinves}
+      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD:-myinves}
+      POSTGRESQL_HOST: db
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_DATABASE: ${POSTGRESQL_DATABASE:-myinves}
+      # Leave empty to avoid registering the app on Orbit.
+      ORBIT_API_URL: ${ORBIT_API_URL:-}
+    ports:
+      - "${BACKEND_PORT:-8000}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Apply migrations (idempotent) to the compose database, then start the API.
+    # --no-config-file avoids reading yoyo.ini (which points to an external database).
+    command: sh -c "poetry run yoyo apply --batch --no-config-file --database postgresql://$$POSTGRESQL_USER:$$POSTGRESQL_PASSWORD@db:5432/$$POSTGRESQL_DATABASE ./migrations && poetry run uvicorn src.main:app --port 8080 --host 0.0.0.0"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    image: myinves-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+
+volumes:
+  myinves_db:

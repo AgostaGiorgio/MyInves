@@ -1,129 +1,96 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 import { api } from '../services/api'
+import { usePortfolio } from '../composables/usePortfolio'
+import { useLookups } from '../composables/useLookups'
+import { useStatistics } from '../composables/useStatistics'
+import SegmentedControl from '../components/ui/SegmentedControl.vue'
+import PortfolioHero from '../components/PortfolioHero.vue'
 import MarketTicker from '../components/MarketTicker.vue'
-import BalanceHero from '../components/BalanceHero.vue'
-import AssetList from '../components/AssetList.vue'
-import TotalChart from '../components/TotalChart.vue'
-import AssetAllocation from '../components/AssetAllocation.vue'
-import AssetComparison from '../components/AssetComparison.vue'
-import AddReadingModal from '../components/AddReadingModal.vue'
 
-const marketData = ref([])
-const portfolioTotal = ref(0)
-const portfolioAssets = ref([])
+const { items, total, load } = usePortfolio()
+const { typeLabels, load: loadLookups } = useLookups()
+const { stats, load: loadStats } = useStatistics()
 
-const loadDashboardData = async () => {
+const period = ref('3m')
+const periodOptions = [
+  { value: '3m', label: '3M' },
+  { value: '6m', label: '6M' },
+  { value: '12m', label: '12M' },
+  { value: '24m', label: '24M' },
+  { value: 'all', label: 'All' },
+]
+const MONTHS = { '3m': 3, '6m': 6, '12m': 12, '24m': 24 }
+const SERIES_LENGTH = 6
+
+const history = ref([])
+const marketItems = ref([])
+
+const loadExtras = async () => {
   try {
-    const [rawAssets, rawRates, rawPortfolio] = await Promise.all([
-      api.getAssets(),
-      api.getExchangeRates(),
-      api.getPortfolio()
+    const [hist, market] = await Promise.all([
+      api.getPortfolioHistory('all'),
+      api.getMarketHistory(SERIES_LENGTH),
     ])
 
-    const formattedRates = rawRates.map(rate => ({
-      id: rate.id,
-      type: 'rate',
-      name: rate.currency,
-      value: parseFloat(rate.rate_to_eur),
-      date: new Date(rate.record_date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
-      iconUrl: null
+    history.value = Array.isArray(hist) ? hist.filter(Boolean) : []
+
+    marketItems.value = market.map((item) => ({
+      id: `${item.kind}-${item.id}`,
+      name: item.name,
+      value: item.value !== null && item.value !== undefined ? Number(item.value) : null,
+      date: item.date,
+      iconUrl: item.icon_base64,
+      series: (item.points || []).map((p) => Number(p.value)),
     }))
-
-    const formattedAssets = rawAssets
-      .filter(asset => parseFloat(asset.price) !== 1)
-      .map(asset => ({
-        id: asset.id,
-        type: 'asset',
-        name: asset.name,
-        value: parseFloat(asset.price),
-        date: new Date(asset.price_date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
-        iconUrl: asset.icon_base64 || null 
-      }))
-
-    marketData.value = [...formattedAssets, ...formattedRates]
-
-    let calculatedTotal = 0
-    portfolioAssets.value = rawPortfolio.map(item => {
-      const itemValue = parseFloat(item.total_value_eur)
-      calculatedTotal += itemValue
-
-      return {
-        id: item.id,
-        name: item.name,
-        type: item.asset_type,
-        label: item.asset_label,
-        value: itemValue,
-        quantity: parseFloat(item.quantity),
-        iconUrl: item.icon_base64 || null 
-      }
-    })
-
-    portfolioAssets.value.sort((a, b) => (a.type || '').localeCompare(b.type || ''))
-
-    portfolioTotal.value = calculatedTotal
-
-    rawAssets.forEach(async (rawAsset) => {
-      try {
-        if (rawAsset.name && rawAsset.icon_base64) {
-          const portfolioTarget = portfolioAssets.value.find(p => p.name === rawAsset.name)
-          if (portfolioTarget) portfolioTarget.iconUrl = rawAsset.icon_base64
-        }
-      } catch (err) {
-        console.warn(`No icon found for ${rawAsset.name}`)
-      }
-    })
-
-  } catch (error) {
-    console.error("Fatal error loading the carousel:", error)
+  } catch (e) {
+    console.error('Failed to load dashboard data:', e)
   }
 }
 
-onMounted(() => {
-  loadDashboardData()
+onMounted(async () => {
+  loadLookups()
+  await Promise.all([load(), loadExtras(), loadStats()])
 })
 
-const isModalOpen = ref(false)
-const refreshKey = ref(0)
+const filteredPoints = computed(() => {
+  if (period.value === 'all') return history.value
+  const months = MONTHS[period.value]
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth() - months, 1)
+  return history.value.filter((p) => new Date(p.record_date) >= start)
+})
 
-const handleReadingsSubmit = async (payload) => {
-  try {
-    await api.addReadings(payload)
-    isModalOpen.value = false
-    await loadDashboardData()
-    refreshKey.value += 1
-  } catch (error) {
-    console.error("Error saving readings:", error)
-    alert("An error occurred during saving. Please try again.")
-  }
-}
-
+const change = computed(() => {
+  const pts = filteredPoints.value
+  if (pts.length < 2) return { changeEur: null, changePct: null }
+  const first = Number(pts[0].total_value_eur)
+  const last = Number(pts[pts.length - 1].total_value_eur)
+  return { changeEur: last - first, changePct: first ? ((last - first) / first) * 100 : null }
+})
 </script>
 
 <template>
   <main class="w-full px-4">
-    <div class="py-3 flex flex-col gap-7 w-full">
-      <MarketTicker :items="marketData"/>
-      <BalanceHero :total="portfolioTotal"/>
-      <TotalChart :key="refreshKey"/>
-      <AssetComparison :assets="portfolioAssets" :key="refreshKey"/>
-      <AssetAllocation :assets="portfolioAssets"/>
-      <AssetList :assets="portfolioAssets"/>
+    <div class="py-3 flex flex-col gap-5 w-full">
+      <div class="w-full lg:pr-28">
+        <div class="w-full max-w-sm mx-auto">
+          <SegmentedControl v-model="period" :options="periodOptions" />
+        </div>
+      </div>
+
+      <PortfolioHero
+        :total="total"
+        :change-eur="change.changeEur"
+        :change-pct="change.changePct"
+        :month-pct="stats?.change_vs_prev_month_pct"
+        :points="filteredPoints"
+        :items="items"
+        :labels="typeLabels"
+      />
+
+      <MarketTicker :items="marketItems" />
     </div>
   </main>
-
-  <button @click="isModalOpen = true" class="fixed bottom-28 right-6 w-14 h-14 bg-brand-primary text-brand-textMain rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(139,92,246,0.4)] hover:bg-brand-secondary hover:scale-105 active:scale-95 transition-all duration-200 z-50">
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-  </button>
-
-  <AddReadingModal 
-    v-if="isModalOpen" 
-    :assets="portfolioAssets" 
-    @close="isModalOpen = false" 
-    @submit="handleReadingsSubmit" 
-  />
 </template>
-
-<style scoped>
-</style>

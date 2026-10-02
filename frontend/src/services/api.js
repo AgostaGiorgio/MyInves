@@ -46,6 +46,21 @@ export const api = {
     return response.data
   },
 
+  async getAssetOrders(assetId) {
+    const response = await apiClient.get(`/api/v1/assets/${assetId}/orders`)
+    return response.data
+  },
+
+  async addAssetOrder(assetId, payload) {
+    const response = await apiClient.post(`/api/v1/assets/${assetId}/orders`, payload)
+    return response.data
+  },
+
+  async deleteAssetOrder(assetId, orderId) {
+    const response = await apiClient.delete(`/api/v1/assets/${assetId}/orders/${orderId}`)
+    return response.data
+  },
+
   async getAssetIcon(assetId) {
     const response = await apiClient.get(`/api/v1/assets/${assetId}/icon`)
     return response.data
@@ -64,6 +79,13 @@ export const api = {
   async getPortfolioHistory(period = 'all') {
     const response = await apiClient.get('/api/v1/portfolio/history', {
       params: { period: period }
+    })
+    return response.data
+  },
+
+  async getMarketHistory(points = 6) {
+    const response = await apiClient.get('/api/v1/market/history', {
+      params: { points }
     })
     return response.data
   },
@@ -98,18 +120,8 @@ export const api = {
     return response.data
   },
 
-  async createAssetType(payload) {
-    const response = await apiClient.post('/api/v1/asset-types', payload)
-    return response.data
-  },
-
   async renameCurrency(code, label) {
     const response = await apiClient.patch(`/api/v1/currencies/${code}`, { label })
-    return response.data
-  },
-
-  async renameAssetType(code, label) {
-    const response = await apiClient.patch(`/api/v1/asset-types/${code}`, { label })
     return response.data
   },
 

@@ -48,7 +48,7 @@ backend/
 │       ├── portfolio_repository.py  # Data access layer (raw SQL queries)
 │       ├── portfolio_service.py     # Business logic
 │       └── queries.py               # Raw SQL statements
-├── migrations/                  # Yoyo SQL migrations (0001_... to 0008_...)
+├── migrations/                  # Yoyo SQL migrations (0001_... to 0012_...)
 ├── pyproject.toml               # Python dependencies
 ├── .env / .env.example          # Environment configuration
 └── Dockerfile
@@ -105,7 +105,8 @@ cd backend
 yoyo apply --database <db_url> ./migrations
 ```
 
-Latest migration seeds the lookup tables (`currencies`, `asset_types`) and an `EUR`/`CASH` asset.
+Latest migrations seed the lookup tables (`currencies`, `asset_types`), add typed-asset metadata
+(`assets.details`), the order ledger (`asset_orders`) and the cost basis (`asset_readings.cost_price`).
 
 ---
 
@@ -116,10 +117,12 @@ All endpoints are prefixed with `/api/v1`.
 ### Assets
 | Method | Endpoint | Description |
 |:------:|----------|-------------|
-| `GET` | `/assets` | Get all assets with current prices |
+| `GET` | `/assets` | Get all assets with current prices and type details |
 | `GET` | `/assets/{id}/icon` | Get asset icon |
-| `POST` | `/assets` | Create a new asset |
+| `POST` | `/assets` | Create a new asset (type-specific `details` validated) |
 | `PATCH` | `/assets/{id}` | Update an asset |
+| `GET` | `/assets/{id}/orders` | List buy/sell orders for a position asset |
+| `POST` | `/assets/{id}/orders` | Register an order; updates position and weighted-average cost |
 
 ### Asset Prices
 | Method | Endpoint | Description |
@@ -141,10 +144,10 @@ All endpoints are prefixed with `/api/v1`.
 ### Portfolio & History
 | Method | Endpoint | Description |
 |:------:|----------|-------------|
-| `GET` | `/portfolio` | Current portfolio with EUR totals |
+| `GET` | `/portfolio` | Current portfolio with EUR totals, cost basis and unrealized P&L |
 | `GET` | `/portfolio/history?period=<all\|1d\|1w\|1m\|1y>` | Portfolio history |
 | `GET` | `/assets/history` | Asset history |
-| `POST` | `/readings` | Add one or more holdings readings |
+| `POST` | `/readings` | Add one or more holdings readings (optional `cost_price`) |
 
 ### Lookups
 | Method | Endpoint | Description |
@@ -152,9 +155,9 @@ All endpoints are prefixed with `/api/v1`.
 | `GET` | `/currencies` | List currencies |
 | `POST` | `/currencies` | Create a currency |
 | `PATCH` | `/currencies/{code}` | Rename a currency label |
-| `GET` | `/asset-types` | List asset types |
-| `POST` | `/asset-types` | Create an asset type |
-| `PATCH` | `/asset-types/{code}` | Rename an asset type label |
+| `GET` | `/asset-types` | List asset types (fixed catalog, read-only) |
+
+> `asset_types` is a **fixed catalog** managed via migrations — it can no longer be created or renamed at runtime.
 
 Interactive OpenAPI docs are available at `{host}/docs` when the server is running.
 
@@ -167,12 +170,27 @@ Interactive OpenAPI docs are available at `{host}/docs` when the server is runni
 |------|-------------|
 | `ETF` | Exchange-traded funds |
 | `CRYPTO` | Cryptocurrencies |
+| `METAL` | Precious metals (gold/silver via `details.metal`) |
 | `CASH` | Cash holdings |
-| `GOLD` | Precious metals |
 | `BANK_ACCOUNT` | Bank accounts with interest |
 | `BANK_ACCOUNT_STATIC` | Static bank accounts |
+| `OTHER` | Generic assets (watches, cars, real estate, ...) |
 
-> `currencies` and `asset_types` are stored as lookup tables with `TEXT` code columns, referenced by assets via foreign keys.
+> `currencies` is stored as a lookup table with `TEXT` code columns; `asset_types` is a fixed catalog seeded via migrations.
+
+### Assets: type-specific details and tracking
+Each asset stores optional type-specific metadata in `assets.details` (JSONB), validated per `asset_type`
+(e.g. ETF `isin`/`ticker`, METAL `metal`/`purity`, bank `iban`/`interest_rate`). Fields not valid for the
+chosen type are rejected with `422`.
+
+Tracking is implicit:
+- `CASH`, `BANK_ACCOUNT`, `BANK_ACCOUNT_STATIC`, `OTHER` are **value-tracked**: the reading is the value
+  held, market prices are rejected.
+- `ETF`, `CRYPTO`, `METAL` use **quantity × market price** when prices exist, otherwise fall back to the
+  value held (e.g. tracking a whole broker total like "Binance"/"IBKR").
+
+Position assets can record **orders** (`/assets/{id}/orders`). Each order updates the latest reading and the
+weighted-average `cost_price`, which powers the unrealized P&L shown in `/portfolio` and `/statistics`.
 
 ### Currencies (seeded)
 | Code | Name |

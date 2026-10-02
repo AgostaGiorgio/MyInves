@@ -6,8 +6,10 @@ from src.services.portfolio_service import PortfolioService
 from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetIcon, HistoryItemView, Period, AssetHistoryItemView
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate, ExchangeRateCreate
-from src.db.models.lookup import Currency, AssetType, CurrencyCreate, AssetTypeCreate, CurrencyLabelUpdate, AssetTypeLabelUpdate
+from src.db.models.lookup import Currency, AssetType, CurrencyCreate, CurrencyLabelUpdate
+from src.db.models.order import AssetOrder, AssetOrderCreate
 from src.db.models.price import AssetPrice, AssetPriceCreate
+from src.db.models.market import MarketItemView
 from src.db.models.statistics import StatisticsResponse
 
 
@@ -46,6 +48,14 @@ async def delete_exchange_rate(rate_id: UUID, asset_service: PortfolioService = 
     if not deleted:
         raise HTTPException(status_code=404, detail="Exchange rate not found.")
 
+@api_router.get("/market/history", response_model=list[MarketItemView], status_code=200)
+@inject
+async def get_market_history(
+    points: int = Query(6, ge=1, le=60),
+    asset_service: PortfolioService = Depends(Provide[Container.portfolio_service]),
+) -> list[MarketItemView]:
+    return await asset_service.get_market_history(points)
+
 @api_router.get("/assets", response_model=list[AssetWithPrice], status_code=200)
 @inject
 async def get_assets(portfolio_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[AssetWithPrice]:
@@ -83,7 +93,10 @@ async def get_asset_prices(id: UUID, asset_service: PortfolioService = Depends(P
 async def add_asset_price(id: UUID, price: AssetPriceCreate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> AssetPrice:
     created: AssetPrice | None = await asset_service.add_asset_price(id, price)
     if not created:
-        raise HTTPException(status_code=400, detail="Failed to add price.")
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to add price. Asset not found or its type does not support market prices.",
+        )
     return created
 
 @api_router.patch("/prices/{price_id}", response_model=AssetPriceCreate, status_code=200)
@@ -100,6 +113,29 @@ async def delete_asset_price(price_id: UUID, asset_service: PortfolioService = D
     deleted: bool = await asset_service.delete_asset_price(price_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Price not found.")
+
+@api_router.get("/assets/{id}/orders", response_model=list[AssetOrder], status_code=200)
+@inject
+async def get_asset_orders(id: UUID, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[AssetOrder]:
+    return await asset_service.get_asset_orders(id)
+
+@api_router.post("/assets/{id}/orders", response_model=AssetOrder, status_code=201)
+@inject
+async def add_asset_order(id: UUID, order: AssetOrderCreate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> AssetOrder:
+    try:
+        created: AssetOrder | None = await asset_service.add_order(id, order)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if not created:
+        raise HTTPException(status_code=404, detail="Asset not found.")
+    return created
+
+@api_router.delete("/assets/{id}/orders/{order_id}", status_code=204)
+@inject
+async def delete_asset_order(id: UUID, order_id: UUID, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> None:
+    deleted: bool = await asset_service.delete_order(id, order_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Order not found.")
 
 @api_router.get("/assets/history", response_model=list[AssetHistoryItemView], status_code=200)
 @inject
@@ -123,10 +159,10 @@ async def get_statistics(asset_service: PortfolioService = Depends(Provide[Conta
 
 @api_router.post("/readings", response_model=list[ReadingCreate], status_code=201)
 @inject
-async def create_asset(readings: list[ReadingCreate], asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[ReadingCreate]:
-    created_readings: Asset | None = await asset_service.add_readings(readings)
+async def create_readings(readings: list[ReadingCreate], asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> list[ReadingCreate]:
+    created_readings: list[ReadingCreate] | None = await asset_service.add_readings(readings)
     if not created_readings:
-        raise HTTPException(status_code=400, detail="Failed to create asset.")
+        raise HTTPException(status_code=400, detail="Failed to create readings.")
     return created_readings
 
 @api_router.post("/currencies", status_code=201)
@@ -136,14 +172,6 @@ async def create_currency(currency: CurrencyCreate, asset_service: PortfolioServ
     if not created:
         raise HTTPException(status_code=400, detail="Failed to create currency (maybe it already exists).")
     return currency
-
-@api_router.post("/asset-types", status_code=201)
-@inject
-async def create_asset_type(asset_type: AssetTypeCreate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> AssetTypeCreate:
-    created: bool = await asset_service.add_asset_type(code=asset_type.code, label=asset_type.label)
-    if not created:
-        raise HTTPException(status_code=400, detail="Failed to create asset type (maybe it already exists).")
-    return asset_type
 
 @api_router.get("/currencies", response_model=list[Currency], status_code=200)
 @inject
@@ -162,11 +190,3 @@ async def rename_currency(code: str, update: CurrencyLabelUpdate, asset_service:
     if not renamed:
         raise HTTPException(status_code=404, detail="Currency not found.")
     return Currency(code=code, label=update.label)
-
-@api_router.patch("/asset-types/{code}", response_model=AssetType, status_code=200)
-@inject
-async def rename_asset_type(code: str, update: AssetTypeLabelUpdate, asset_service: PortfolioService = Depends(Provide[Container.portfolio_service])) -> AssetType:
-    renamed: bool = await asset_service.rename_asset_type(code=code, label=update.label)
-    if not renamed:
-        raise HTTPException(status_code=404, detail="Asset type not found.")
-    return AssetType(code=code, label=update.label)

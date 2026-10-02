@@ -2,86 +2,77 @@
 import { computed } from 'vue'
 import { Doughnut } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js'
+import { typeColor, typeLabel } from '../constants/assetTypes'
 
 ChartJS.register(ArcElement, Tooltip)
 
 const props = defineProps({
-  assets: {
-    type: Array,
-    required: true
-  }
+  // Portfolio items: [{ asset_type, total_value_eur }]
+  items: { type: Array, default: () => [] },
+  // code -> label (dal catalogo backend)
+  labels: { type: Object, default: () => ({}) },
 })
 
-const colorFor = (key) => {
-  let hash = 0
-  for (let i = 0; i < key.length; i++) {
-    hash = key.charCodeAt(i) + ((hash << 5) - hash)
+const slices = computed(() => {
+  const totals = new Map()
+  let total = 0
+
+  for (const item of props.items) {
+    const value = Number(item.total_value_eur) || 0
+    totals.set(item.asset_type, (totals.get(item.asset_type) || 0) + value)
+    total += value
   }
-  const hue = Math.abs(hash) % 360
-  return `hsl(${hue} 70% 55%)`
-}
 
-const assetTypeDistribution = computed(() => {
-  const totals = {}
-  let totalValue = 0
-
-  props.assets.forEach(asset => {
-    if (!totals[asset.type]) totals[asset.type] = 0
-    totals[asset.type] += asset.value
-    totalValue += asset.value
-  })
-
-  return Object.keys(totals).map(type => {
-    const value = totals[type]
-    return {
-      type: type.replaceAll('_', ' '),
-      value: value,
-      percentage: totalValue > 0 ? ((value / totalValue) * 100).toFixed(1) : 0,
-      color: colorFor(type)
-    }
-  }).sort((a, b) => b.value - a.value)
+  return [...totals.entries()]
+    .map(([type, value]) => ({
+      type,
+      label: props.labels[type] || typeLabel(type),
+      value,
+      color: typeColor(type),
+      percentage: total > 0 ? (value / total) * 100 : 0,
+    }))
+    .filter((s) => s.value > 0)
+    .sort((a, b) => b.value - a.value)
 })
 
-const doughnutChartData = computed(() => ({
-  labels: assetTypeDistribution.value.map(d => d.type),
+const chartData = computed(() => ({
+  labels: slices.value.map((s) => s.label),
   datasets: [{
-    data: assetTypeDistribution.value.map(d => d.value),
-    backgroundColor: assetTypeDistribution.value.map(d => d.color),
-    borderWidth: 0, hoverOffset: 4
-  }]
+    data: slices.value.map((s) => s.value),
+    backgroundColor: slices.value.map((s) => s.color),
+    borderWidth: 0,
+    hoverOffset: 4,
+  }],
 }))
 
-const doughnutChartOptions = {
-  responsive: true, maintainAspectRatio: false, cutout: '75%',
-  plugins: { legend: { display: false }, tooltip: { enabled: false } }
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  cutout: '62%',
+  plugins: { legend: { display: false }, tooltip: { enabled: false } },
 }
 </script>
 
 <template>
-  <section class="w-full flex flex-col items-start gap-2">
-    <div class="flex items-center">
-      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Asset Allocation</span>
+  <div v-if="slices.length" class="flex flex-col items-center gap-4">
+    <div class="relative w-40 h-40 shrink-0">
+      <Doughnut :data="chartData" :options="chartOptions" />
     </div>
-    
-    <div class="w-full bg-brand-surface rounded-app-sm p-5 border border-white/5 flex items-center gap-6">
-      
-      <div class="relative w-28 h-28 shrink-0 flex items-center justify-center">
-        <Doughnut :data="doughnutChartData" :options="doughnutChartOptions" />
-        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <svg class="w-6 h-6 text-brand-textMuted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12V8H6a2 2 0 01-2-2c0-1.1.9-2 2-2h12v4"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6v12a2 2 0 002 2h14v-4H6a2 2 0 01-2-2V6z"></path></svg>
-        </div>
-      </div>
-      
-      <div class="flex flex-col gap-3 flex-1">
-        <div v-for="item in assetTypeDistribution" :key="item.type" class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full shadow-sm" :style="{ backgroundColor: item.color }"></span>
-            <span class="text-brand-textMain text-xs font-medium">{{ item.type }}</span>
-          </div>
-          <span class="text-brand-textMain text-xs font-bold tracking-wide">{{ item.percentage }}%</span>
-        </div>
-      </div>
 
+    <div class="w-full flex flex-col gap-2.5">
+      <div v-for="slice in slices" :key="slice.type" class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: slice.color }" />
+          <span class="text-brand-textMain text-xs font-medium truncate">{{ slice.label }}</span>
+        </div>
+        <span class="text-brand-textMain text-xs font-bold tracking-wide shrink-0">
+          {{ slice.percentage.toFixed(1) }}%
+        </span>
+      </div>
     </div>
-  </section>
+  </div>
+
+  <div v-else class="flex items-center justify-center py-16 text-brand-textMuted text-xs">
+    No composition data
+  </div>
 </template>
