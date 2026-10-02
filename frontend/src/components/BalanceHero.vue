@@ -1,24 +1,37 @@
 <script setup>
-    import { useSensitiveVisibility, maskAmount } from '../composables/useSensitiveVisibility'
-    const { isSensitiveHidden } = useSensitiveVisibility()
+import { computed } from 'vue'
+import Money from './ui/Money.vue'
+import PnLValue from './ui/PnLValue.vue'
+import { formatPct, toNumber } from '../utils/format'
+import { trendClass } from '../utils/trend'
 
-    defineProps({
-    total: {
-        type: Number,
-        required: true
-    }
-    })
+const props = defineProps({
+  total: { type: [Number, String], default: 0 },
+  changeEur: { type: [Number, String], default: null },
+  changePct: { type: [Number, String], default: null },
+  monthPct: { type: [Number, String], default: null },
+})
+
+const hasMonth = computed(() => toNumber(props.monthPct) !== null)
+const monthClass = computed(() => trendClass(props.monthPct))
 </script>
 
 <template>
-  <section class="w-full flex flex-col gap-2">
-    <div class="flex items-center">
-      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Current Balance</span>
+  <div class="flex flex-col gap-2">
+    <div class="flex items-start justify-between gap-3">
+      <div class="text-4xl font-extrabold tracking-tighter">
+        <Money :value="total" />
+      </div>
+      <span
+        v-if="hasMonth"
+        class="text-xs font-semibold mt-1.5 shrink-0"
+        :class="monthClass"
+        title="vs last month"
+      >
+        {{ formatPct(monthPct) }}
+      </span>
     </div>
 
-    <div class="text-4xl font-extrabold text-brand-textMain tracking-tighter">
-      <span v-if="isSensitiveHidden">{{ maskAmount() }}</span>
-      <span v-else>€ {{ total.toLocaleString('it-IT', { minimumFractionDigits: 2 }) }}</span>
-    </div>
-  </section>
+    <PnLValue :pl-eur="changeEur" :pct="changePct" size="md" />
+  </div>
 </template>
