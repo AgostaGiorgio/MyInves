@@ -33,66 +33,107 @@ Everything runs **self-hosted**, so your financial data stays completely private
 
 ---
 
-## 🧭 The three main screens
+## 🐳 Quick start (Docker Compose)
 
-The app is split into three sections, reachable from the bottom navigation bar:
+Run the whole platform (**PostgreSQL 15 + backend + frontend**) with a single command. All you need is **Docker** with the Compose plugin.
+
+```sh
+git clone <this-repo> && cd myinves
+docker compose up --build
+```
+
+Then open **http://localhost:3000**.
+
+- The backend API is exposed at **http://localhost:8000**.
+- The database lives in a named volume (`myinves_db`) and survives restarts.
+- On startup the backend **automatically applies the database migrations**.
+- Stop with `Ctrl+C` (or `docker compose down`); add `-v` to also wipe the data.
+
+You can override the defaults with environment variables (or a `.env` file next to `docker-compose.yml`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRESQL_USER` | `myinves` | Database user |
+| `POSTGRESQL_PASSWORD` | `myinves` | Database password |
+| `POSTGRESQL_DATABASE` | `myinves` | Database name |
+| `BACKEND_PORT` | `8000` | Host port for the API |
+| `FRONTEND_PORT` | `3000` | Host port for the web app |
+| `VITE_API_BASE_URL` | `http://localhost:8000` | API URL as seen by the **browser** |
+| `ORBIT_API_URL` | *(empty)* | Optional Orbit registration URL |
+
+> 💡 If you serve the frontend on a different host/port, set `VITE_API_BASE_URL` accordingly — it is baked into the frontend at **build time**.
+
+---
+
+## 🧭 The main screens
+
+The app is split into four sections, reachable from the navigation bar (a bottom bar on mobile, a vertical rail on desktop):
 
 ### 1. Dashboard (home)
 Your financial overview at a glance:
-- **Ticker** — a carousel showing the current price/value of your assets and the latest exchange rates.
-- **Total balance** — your current total net worth in EUR.
-- **Portfolio value chart** — how your total wealth evolved over a chosen time period (all / day / week / month / year).
-- **Asset comparison** — compare the performance of selected assets side by side.
-- **Asset allocation** — a doughnut chart of how your money is split by asset type.
-- **Asset list** — every asset with its name, type, quantity and value in EUR.
-- The **＋ button** (bottom right) opens a form to **add a new reading** (see below).
+- **Period filter** — 3M / 6M / 12M / 24M / All.
+- **Hero card** — your current total net worth, the change vs last month, and two tabs:
+  - **Performance** — line chart of how your total wealth evolved over the selected period.
+  - **Composition** — doughnut of your holdings split by **asset type**.
+- **Markets** — the latest asset prices and currency exchange rates, each with a small sparkline of its last readings.
 
-### 2. Statistics
-A dedicated space for historical insights — the evolution of your total portfolio and individual assets over time.
+### 2. Assets
+- Every asset is listed **grouped by type**; tap one to open its **detail page**.
+- The **＋** button (top right) creates a new asset.
+- The detail page shows current value, P&L, quantity/average cost, a **value-over-time** chart, its **orders**, **details** and **prices**; from there you can update the position, add an order, edit the average cost, manage prices and change the icon.
 
-### 3. Settings
-Where you manage the "building blocks" of your portfolio, in collapsible sections:
-- **Assets** — add, rename, change type/currency, set an icon, and manage each asset's **prices**.
-- **Exchange Rates** — add, edit or delete currency exchange rates (always relative to EUR).
+### 3. Statistics
+A dedicated space for insights:
+- **Growth** — monthly change bars (green for gains, red for losses).
+- **Allocation** — doughnut split into **Dynamic / Static / Other** (tap the ⓘ to see how types are grouped).
+- **By type** and **Assets** — month-over-month and average monthly growth, with P&L.
+
+### 4. Currencies
+Where you manage the "building blocks":
 - **Currencies** — add new currencies and rename them.
-- **Asset Types** — add new types and rename them.
+- **Exchange rates** — add, edit or delete currency exchange rates (always relative to EUR).
+
+### Add reading (header button)
+The **＋ Add reading** button in the header opens a dedicated page to update several assets at once (see below).
+
 
 ---
 
 ## ✏️ How to use it
 
 ### Adding a new asset
-1. Go to **Settings → Assets**.
-2. Fill in the asset **name** (e.g. "Bitcoin"), choose its **type** (e.g. CRYPTO) and **currency** (e.g. EUR).
-3. Optionally paste an **icon** (a base64 image) to make it recognizable.
-4. Click **Add Asset**.
+1. Go to the **Assets** page and tap the **＋** button.
+2. Enter the asset **name** (e.g. "Bitcoin"), choose its **type** (e.g. CRYPTO) and **currency** (e.g. EUR), and optionally **upload an icon** (stored as base64).
+3. Optionally fill in the type-specific **details** (e.g. ISIN/ticker for an ETF, bank/interest rate for an account).
+4. Tap **Create asset**.
 
-> 💡 Most new accounts start with a "Cash" asset in EUR (a default `EUR` / `CASH` asset is created automatically when you install).
+> 💡 A "Cash" asset in EUR (a default `EUR` / `CASH` asset) is created automatically when you install. The set of asset types is fixed.
 
 ### Recording a price for an asset
 An asset's **price** is how much one unit is worth (e.g. price of 1 BTC in EUR).
-1. In **Settings → Assets**, open the asset row and expand **Prices**.
-2. Click **Add** and enter the **date** and **price**.
-3. To correct an existing entry, just edit the date or price directly (changes are saved automatically). Use ✕ to delete a price.
+1. Open the asset **detail page** and scroll to **Prices**.
+2. Tap **Add** and enter the **date** and **price**.
+3. Edit or delete existing entries from the same list (pencil / trash icons).
 
-### Recording what you own (readings/holdings)
-A **reading** is how much of an asset you currently hold.
-- On the **Dashboard**, tap the **＋** button.
-- Choose the asset and enter the **quantity** (leave fields empty for assets you don't want to change).
-- Click **Save**.
+### Recording what you own (readings) and orders
+- Tap **＋ Add reading** in the header to update **several assets at once**:
+  - enter the **new total value/quantity** (leave blank for assets you don't want to change), or
+  - for assets that support orders (ETF / Crypto / Metal), switch the row to **Order** and record a **buy/sell** (side, quantity, amount).
+- For a single asset, open its detail page and use **Update position** (quantity, average cost, cost basis) or **Add order**.
 
-> 💡 myInves calculates each asset's EUR value as: **quantity × price × exchange rate to EUR**.
+> 💡 myInves calculates each asset's EUR value as: **quantity × price × exchange rate to EUR**. For value-tracked types (cash, bank accounts, generic assets) the reading itself is the value.
 
 ### Adding an exchange rate
 Rates are always **relative to EUR** — i.e. the value of 1 unit of that currency in EUR (for example, 1 USD = 0.90 EUR).
-1. Go to **Settings → Exchange Rates**, expand the section and select the **currency** (EUR is excluded).
-2. Enter the **date** and the **rate**.
-3. Click **Add**. Existing entries can be edited or deleted the same way.
+1. Go to **Currencies → Exchange rates** and tap **＋**.
+2. Select the **currency** (EUR is excluded) and enter the **date** and the **rate**.
+3. Tap **Add rate**. Existing entries can be edited or deleted the same way.
 
-### Managing currencies and asset types
-- Add a **new currency** via **Settings → Currencies**.
-- Add a **new asset type** via **Settings → Asset Types**.
-- Rename a currency/type by editing its label (saved automatically). The code (e.g. `EUR`, `CASH`) cannot be changed, since it's the technical identifier.
+### Managing currencies
+- Add a **new currency** from the **Currencies** page (tap **＋**).
+- Rename a currency by opening it and editing its label. The code (e.g. `EUR`) cannot be changed, since it's the technical identifier.
+- **Asset types are fixed** — they are seeded with the platform and cannot be created or renamed from the UI.
+
 
 ---
 

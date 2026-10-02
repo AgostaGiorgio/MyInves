@@ -116,11 +116,7 @@ const chartOptions = computed(() => ({
 </script>
 
 <template>
-  <section class="w-full flex flex-col items-start gap-2">
-    <div class="flex items-center">
-      <span class="text-xs text-brand-textMuted uppercase tracking-widest font-semibold">Compare Trend</span>
-    </div>
-
+  <section class="w-full flex flex-col items-start gap-3">
     <div class="w-full flex overflow-x-auto gap-2 hide-scrollbar">
       <button 
         v-for="asset in assets" 
