@@ -2,6 +2,7 @@
 import AppHeader from './components/AppHeader.vue'
 import AppNavbar from './components/AppNavbar.vue'
 import ToastHost from './components/ui/ToastHost.vue'
+import OnboardingModal from './components/OnboardingModal.vue'
 </script>
 
 <template>
@@ -16,5 +17,6 @@ import ToastHost from './components/ui/ToastHost.vue'
 
     <AppNavbar />
     <ToastHost />
+    <OnboardingModal />
   </div>
 </template>
