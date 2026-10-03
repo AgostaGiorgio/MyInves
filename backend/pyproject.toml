@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "myinves"
-version = "3.0.0"
+version = "3.0.1"
 description = "Piattaforma per tenere traccia del patrimonio totale (ETF, crypto, cash, oro, conti)"
 authors = ["Il tuo nome <la.tua@email.com>"]
 packages = [
