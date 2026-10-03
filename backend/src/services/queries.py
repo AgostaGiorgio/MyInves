@@ -2,8 +2,7 @@ from sqlalchemy import text, TextClause
 from src.db.models.asset import Period, PERIOD_MONTHS
 
 # Tipi tracciati a valore diretto: la lettura e' il valore posseduto, non una
-# quantita' da moltiplicare per un prezzo di mercato. Tenuto allineato con
-# `VALUE_TRACKED_CODES` in src/db/models/enums.py.
+# quantita' da moltiplicare per un prezzo di mercato (allineato con il frontend).
 VALUE_TRACKED_SQL = "('CASH', 'BANK_ACCOUNT', 'BANK_ACCOUNT_STATIC', 'OTHER')"
 
 NEW_ASSET = text("""

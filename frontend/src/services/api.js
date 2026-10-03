@@ -61,16 +61,6 @@ export const api = {
     return response.data
   },
 
-  async getAssetIcon(assetId) {
-    const response = await apiClient.get(`/api/v1/assets/${assetId}/icon`)
-    return response.data
-  },
-
-  async getExchangeRates() {
-    const response = await apiClient.get('/api/v1/exchange-rates')
-    return response.data
-  },
-
   async getPortfolio(){
     const response = await apiClient.get('/api/v1/portfolio')
     return response.data

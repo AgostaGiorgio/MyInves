@@ -22,17 +22,6 @@ class OrderSide(str, Enum):
     SELL = "SELL"
 
 
-# Codici dei tipi tracciati a *valore diretto*: la lettura e' il valore posseduto
-# (in valuta asset), non una quantita' da moltiplicare per un prezzo di mercato.
-VALUE_TRACKED_CODES: frozenset[str] = frozenset(
-    {
-        AssetType.CASH.value,
-        AssetType.BANK_ACCOUNT.value,
-        AssetType.BANK_ACCOUNT_STATIC.value,
-        AssetType.OTHER.value,
-    }
-)
-
 # Codici dei tipi che ammettono posizioni/ordini (quantita' x prezzo).
 ORDER_TRACKED_CODES: frozenset[str] = frozenset(
     {

@@ -12,7 +12,3 @@ class AssetPrice(BaseModel):
 class AssetPriceCreate(BaseModel):
     record_date: datetime = Field(..., description="The date of the price")
     price: Decimal = Field(..., description="The recorded price")
-
-class AssetPriceUpdate(BaseModel):
-    record_date: datetime = Field(..., description="The date of the price")
-    price: Decimal = Field(..., description="The recorded price")

@@ -7,7 +7,7 @@ from src.db.models.asset import Asset, AssetWithPrice, PortfolioItemView, AssetI
 from src.db.models.reading import ReadingCreate
 from src.db.models.exchange import ExchangeRate
 from src.db.models.lookup import Currency, AssetType
-from src.db.models.price import AssetPrice, AssetPriceCreate
+from src.db.models.price import AssetPrice
 from src.db.models.order import AssetOrder, AssetOrderCreate
 from src.db.models.enums import OrderSide
 from src.db.models.market import MarketItemView, MarketPoint

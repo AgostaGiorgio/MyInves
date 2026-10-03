@@ -29,12 +29,6 @@ export function formatPct(value, decimals = 2) {
   return sign + n.toFixed(decimals).replace('.', ',') + '%'
 }
 
-export function formatDateShort(value) {
-  const d = toDate(value)
-  if (!d) return '—'
-  return d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' })
-}
-
 export function formatDate(value) {
   const d = toDate(value)
   if (!d) return '—'
