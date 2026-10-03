@@ -103,7 +103,7 @@ const deletePrice = async (price) => {
   try {
     await api.deleteAssetPrice(price.id)
     toast.success('Price deleted')
-    await loadPrices()
+    await Promise.all([reload(), loadPrices(), loadHistory()])
   } catch (e) {
     toast.error('Could not delete the price')
     console.error('Error deleting price:', e)
@@ -131,7 +131,7 @@ const onPositionSaved = async () => {
 }
 
 const onPriceSaved = async () => {
-  await loadPrices()
+  await Promise.all([reload(), loadPrices(), loadHistory()])
 }
 
 // --- Value over time ---

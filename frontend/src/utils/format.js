@@ -51,6 +51,13 @@ export function toDateInput(value) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+// Data 'yyyy-mm-dd' + ora corrente: usata per timestamp manuali univoci nello stesso giorno.
+export function dateWithCurrentTime(dateStr) {
+  const [y, m, d] = String(dateStr).split('-').map(Number)
+  const now = new Date()
+  return new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds()).toISOString()
+}
+
 export function toNumber(value) {
   if (value === null || value === undefined || value === '') return null
   const n = Number(value)

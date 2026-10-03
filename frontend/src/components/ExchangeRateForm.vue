@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { api } from '../services/api'
 import { useToast } from '../composables/useToast'
 import { useLookups } from '../composables/useLookups'
-import { toDateInput } from '../utils/format'
+import { toDateInput, dateWithCurrentTime } from '../utils/format'
 import BottomSheet from './ui/BottomSheet.vue'
 import Field from './ui/Field.vue'
 import SelectField from './ui/SelectField.vue'
@@ -43,9 +43,11 @@ const submit = async () => {
   if (form.value.rate_to_eur === '' || Number.isNaN(value)) errors.value.rate_to_eur = 'Enter a rate'
   if (Object.keys(errors.value).length) return
 
+  const keepOriginal = isEdit.value && props.rate && toDateInput(props.rate.record_date) === form.value.record_date
+  const recordDate = keepOriginal ? props.rate.record_date : dateWithCurrentTime(form.value.record_date)
   const payload = {
     currency: form.value.currency,
-    record_date: `${form.value.record_date}T00:00:00Z`,
+    record_date: recordDate,
     rate_to_eur: value,
   }
 

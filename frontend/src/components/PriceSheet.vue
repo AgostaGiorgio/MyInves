@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { api } from '../services/api'
 import { useToast } from '../composables/useToast'
-import { toDateInput } from '../utils/format'
+import { toDateInput, dateWithCurrentTime } from '../utils/format'
 import BottomSheet from './ui/BottomSheet.vue'
 import Field from './ui/Field.vue'
 
@@ -32,7 +32,10 @@ const submit = async () => {
   if (form.value.price === '' || Number.isNaN(value)) errors.value.price = 'Enter a price'
   if (Object.keys(errors.value).length) return
 
-  const payload = { record_date: `${form.value.record_date}T00:00:00Z`, price: value }
+  // In modifica con data invariata mantieni il timestamp originale; altrimenti usa la data scelta + ora corrente.
+  const keepOriginal = isEdit && props.price && toDateInput(props.price.record_date) === form.value.record_date
+  const recordDate = keepOriginal ? props.price.record_date : dateWithCurrentTime(form.value.record_date)
+  const payload = { record_date: recordDate, price: value }
 
   saving.value = true
   try {
