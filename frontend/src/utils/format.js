@@ -29,12 +29,6 @@ export function formatPct(value, decimals = 2) {
   return sign + n.toFixed(decimals).replace('.', ',') + '%'
 }
 
-export function formatDateShort(value) {
-  const d = toDate(value)
-  if (!d) return '—'
-  return d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' })
-}
-
 export function formatDate(value) {
   const d = toDate(value)
   if (!d) return '—'
@@ -55,6 +49,13 @@ export function toDateInput(value) {
   if (!d) return ''
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+// Data 'yyyy-mm-dd' + ora corrente: usata per timestamp manuali univoci nello stesso giorno.
+export function dateWithCurrentTime(dateStr) {
+  const [y, m, d] = String(dateStr).split('-').map(Number)
+  const now = new Date()
+  return new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds()).toISOString()
 }
 
 export function toNumber(value) {

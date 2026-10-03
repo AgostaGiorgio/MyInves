@@ -1,5 +1,5 @@
 import yaml
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
 class AppConfig(BaseSettings):
     cors_origins: list[str] = ["*"]

@@ -38,16 +38,17 @@ backend/
 │   ├── config/                  # Configuration (pydantic-settings)
 │   │   └── app_config.py
 │   ├── clients/
-│   │   └── orbit_client.py      # Optional Orbit registration/telemetry client
+│   │   ├── orbit_client.py      # Optional Orbit registration/telemetry client
+│   │   └── postgres_client.py   # Async SQLAlchemy engine/session wrapper
 │   ├── db/
-│   │   ├── db.py                # Async SQLAlchemy session
 │   │   └── models/              # Pydantic models (asset, price, exchange, reading, lookup, enums)
+│   ├── repositories/
+│   │   ├── portfolio.py         # Data access layer (raw SQL queries)
+│   │   └── queries.py           # Raw SQL statements
 │   ├── routers/
 │   │   └── router.py            # API endpoints
 │   └── services/
-│       ├── portfolio_repository.py  # Data access layer (raw SQL queries)
-│       ├── portfolio_service.py     # Business logic
-│       └── queries.py               # Raw SQL statements
+│       └── portfolio_service.py # Business logic
 ├── migrations/                  # Yoyo SQL migrations (0001_... to 0012_...)
 ├── pyproject.toml               # Python dependencies
 ├── .env / .env.example          # Environment configuration

@@ -19,5 +19,3 @@ function toggleSensitiveHidden() {
 export function useSensitiveVisibility() {
   return { isSensitiveHidden, toggleSensitiveHidden }
 }
-
-export const maskAmount = () => '€ ••••'
